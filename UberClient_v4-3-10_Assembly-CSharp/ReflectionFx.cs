@@ -1,0 +1,213 @@
+﻿// Decompiled with JetBrains decompiler
+// Type: ReflectionFx
+// Assembly: Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+// MVID: 6C8FEFFB-EA1C-4C92-899E-E8175A35455F
+// Assembly location: C:\Program Files (x86)\Steam\steamapps\common\UberStrike\UberStrike_Data\Managed\Assembly-CSharp.dll
+
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ReflectionFx : MonoBehaviour
+{
+  public Transform[] reflectiveObjects;
+  public LayerMask reflectionMask;
+  public Material[] reflectiveMaterials;
+  private Transform reflectiveSurfaceHeight;
+  public Shader replacementShader;
+  public Color clearColor = Color.black;
+  public string reflectionSampler = "_ReflectionTex";
+  public float clipPlaneOffset = 0.07f;
+  private Vector3 oldpos = Vector3.zero;
+  private Camera reflectionCamera;
+  private Dictionary<Camera, bool> helperCameras;
+  private Texture[] initialReflectionTextures;
+
+  private void Start()
+  {
+    this.initialReflectionTextures = (Texture[]) new Texture2D[this.reflectiveMaterials.Length];
+    for (int index = 0; index < this.reflectiveMaterials.Length; ++index)
+      this.initialReflectionTextures[index] = this.reflectiveMaterials[index].GetTexture(this.reflectionSampler);
+    if (SystemInfo.supportsRenderTextures)
+      return;
+    this.enabled = false;
+  }
+
+  private void OnDisable()
+  {
+    if (this.initialReflectionTextures == null)
+      return;
+    for (int index = 0; index < this.reflectiveMaterials.Length; ++index)
+      this.reflectiveMaterials[index].SetTexture(this.reflectionSampler, this.initialReflectionTextures[index]);
+  }
+
+  private void LateUpdate()
+  {
+    Transform transform = (Transform) null;
+    float num = float.PositiveInfinity;
+    Vector3 position = Camera.main.transform.position;
+    foreach (Transform reflectiveObject in this.reflectiveObjects)
+    {
+      if (reflectiveObject.renderer.isVisible)
+      {
+        float sqrMagnitude = (position - reflectiveObject.position).sqrMagnitude;
+        if ((double) sqrMagnitude < (double) num)
+        {
+          num = sqrMagnitude;
+          transform = reflectiveObject;
+        }
+      }
+    }
+    if ((UnityEngine.Object) transform == (UnityEngine.Object) null)
+      return;
+    this.reflectiveSurfaceHeight = transform;
+    this.RenderHelpCameras(Camera.main);
+    if (this.helperCameras == null)
+      return;
+    this.helperCameras.Clear();
+  }
+
+  public void RenderHelpCameras(Camera currentCam)
+  {
+    if (this.helperCameras == null)
+      this.helperCameras = new Dictionary<Camera, bool>();
+    if (!this.helperCameras.ContainsKey(currentCam))
+      this.helperCameras.Add(currentCam, false);
+    if (this.helperCameras[currentCam])
+      return;
+    if ((UnityEngine.Object) this.reflectionCamera == (UnityEngine.Object) null)
+    {
+      this.reflectionCamera = this.CreateReflectionCameraFor(currentCam);
+      foreach (Material reflectiveMaterial in this.reflectiveMaterials)
+        reflectiveMaterial.SetTexture(this.reflectionSampler, (Texture) this.reflectionCamera.targetTexture);
+    }
+    this.RenderReflectionFor(currentCam, this.reflectionCamera);
+    this.helperCameras[currentCam] = true;
+  }
+
+  private void RenderReflectionFor(Camera cam, Camera reflectCamera)
+  {
+    if ((UnityEngine.Object) reflectCamera == (UnityEngine.Object) null)
+      return;
+    this.SaneCameraSettings(reflectCamera);
+    reflectCamera.backgroundColor = this.clearColor;
+    reflectCamera.enabled = true;
+    GL.SetRevertBackfacing(true);
+    Transform reflectiveSurfaceHeight = this.reflectiveSurfaceHeight;
+    Vector3 eulerAngles1 = cam.transform.eulerAngles;
+    reflectCamera.transform.eulerAngles = new Vector3(-eulerAngles1.x, eulerAngles1.y, eulerAngles1.z);
+    reflectCamera.transform.position = cam.transform.position;
+    Vector3 position = reflectiveSurfaceHeight.transform.position with
+    {
+      y = reflectiveSurfaceHeight.position.y
+    };
+    Vector3 up = reflectiveSurfaceHeight.transform.up;
+    float w = -Vector3.Dot(up, position) - this.clipPlaneOffset;
+    Matrix4x4 reflectionMatrix = ReflectionFx.CalculateReflectionMatrix(Matrix4x4.zero, new Vector4(up.x, up.y, up.z, w));
+    this.oldpos = cam.transform.position;
+    Vector3 vector3 = reflectionMatrix.MultiplyPoint(this.oldpos);
+    reflectCamera.worldToCameraMatrix = cam.worldToCameraMatrix * reflectionMatrix;
+    Vector4 clipPlane = this.CameraSpacePlane(reflectCamera, position, up, 1f);
+    Matrix4x4 obliqueMatrix = ReflectionFx.CalculateObliqueMatrix(cam.projectionMatrix, clipPlane);
+    reflectCamera.projectionMatrix = obliqueMatrix;
+    reflectCamera.transform.position = vector3;
+    Vector3 eulerAngles2 = cam.transform.eulerAngles;
+    reflectCamera.transform.eulerAngles = new Vector3(-eulerAngles2.x, eulerAngles2.y, eulerAngles2.z);
+    reflectCamera.RenderWithShader(this.replacementShader, "Reflection");
+    GL.SetRevertBackfacing(false);
+  }
+
+  private Camera CreateReflectionCameraFor(Camera cam)
+  {
+    string name = this.gameObject.name + "Reflection" + cam.name;
+    Debug.Log((object) ("Created internal reflection camera " + name));
+    GameObject gameObject = GameObject.Find(name);
+    if (!(bool) (UnityEngine.Object) gameObject)
+      gameObject = new GameObject(name, new System.Type[1]
+      {
+        typeof (Camera)
+      });
+    if (!(bool) (UnityEngine.Object) gameObject.GetComponent(typeof (Camera)))
+      gameObject.AddComponent(typeof (Camera));
+    Camera camera = gameObject.camera;
+    camera.backgroundColor = this.clearColor;
+    camera.clearFlags = CameraClearFlags.Color;
+    this.SetStandardCameraParameter(camera, this.reflectionMask);
+    if (!(bool) (UnityEngine.Object) camera.targetTexture)
+      camera.targetTexture = this.CreateTextureFor(cam);
+    return camera;
+  }
+
+  private RenderTexture CreateTextureFor(Camera cam)
+  {
+    RenderTextureFormat format = RenderTextureFormat.RGB565;
+    if (!SystemInfo.SupportsRenderTextureFormat(format))
+      format = RenderTextureFormat.Default;
+    float num = 0.5f;
+    RenderTexture textureFor = new RenderTexture(Mathf.FloorToInt(cam.pixelWidth * num), Mathf.FloorToInt(cam.pixelHeight * num), 24, format);
+    textureFor.hideFlags = HideFlags.DontSave;
+    return textureFor;
+  }
+
+  private void SaneCameraSettings(Camera helperCam)
+  {
+    helperCam.depthTextureMode = DepthTextureMode.None;
+    helperCam.backgroundColor = Color.black;
+    helperCam.clearFlags = CameraClearFlags.Color;
+    helperCam.renderingPath = RenderingPath.Forward;
+  }
+
+  private void SetStandardCameraParameter(Camera cam, LayerMask mask)
+  {
+    cam.backgroundColor = Color.black;
+    cam.enabled = false;
+    cam.cullingMask = (int) this.reflectionMask;
+  }
+
+  private static Matrix4x4 CalculateObliqueMatrix(Matrix4x4 projection, Vector4 clipPlane)
+  {
+    Vector4 b = projection.inverse * new Vector4(ReflectionFx.sgn(clipPlane.x), ReflectionFx.sgn(clipPlane.y), 1f, 1f);
+    Vector4 vector4 = clipPlane * (2f / Vector4.Dot(clipPlane, b));
+    projection[2] = vector4.x - projection[3];
+    projection[6] = vector4.y - projection[7];
+    projection[10] = vector4.z - projection[11];
+    projection[14] = vector4.w - projection[15];
+    return projection;
+  }
+
+  private static Matrix4x4 CalculateReflectionMatrix(Matrix4x4 reflectionMat, Vector4 plane)
+  {
+    reflectionMat.m00 = (float) (1.0 - 2.0 * (double) plane[0] * (double) plane[0]);
+    reflectionMat.m01 = -2f * plane[0] * plane[1];
+    reflectionMat.m02 = -2f * plane[0] * plane[2];
+    reflectionMat.m03 = -2f * plane[3] * plane[0];
+    reflectionMat.m10 = -2f * plane[1] * plane[0];
+    reflectionMat.m11 = (float) (1.0 - 2.0 * (double) plane[1] * (double) plane[1]);
+    reflectionMat.m12 = -2f * plane[1] * plane[2];
+    reflectionMat.m13 = -2f * plane[3] * plane[1];
+    reflectionMat.m20 = -2f * plane[2] * plane[0];
+    reflectionMat.m21 = -2f * plane[2] * plane[1];
+    reflectionMat.m22 = (float) (1.0 - 2.0 * (double) plane[2] * (double) plane[2]);
+    reflectionMat.m23 = -2f * plane[3] * plane[2];
+    reflectionMat.m30 = 0.0f;
+    reflectionMat.m31 = 0.0f;
+    reflectionMat.m32 = 0.0f;
+    reflectionMat.m33 = 1f;
+    return reflectionMat;
+  }
+
+  private static float sgn(float a)
+  {
+    if ((double) a > 0.0)
+      return 1f;
+    return (double) a < 0.0 ? -1f : 0.0f;
+  }
+
+  private Vector4 CameraSpacePlane(Camera cam, Vector3 pos, Vector3 normal, float sideSign)
+  {
+    Vector3 v = pos + normal * this.clipPlaneOffset;
+    Matrix4x4 worldToCameraMatrix = cam.worldToCameraMatrix;
+    Vector3 lhs = worldToCameraMatrix.MultiplyPoint(v);
+    Vector3 rhs = worldToCameraMatrix.MultiplyVector(normal).normalized * sideSign;
+    return new Vector4(rhs.x, rhs.y, rhs.z, -Vector3.Dot(lhs, rhs));
+  }
+}
