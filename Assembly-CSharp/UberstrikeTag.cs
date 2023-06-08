@@ -1,0 +1,26 @@
+public enum UberstrikeTag
+{
+	Untagged,
+	Respawn,
+	Finish,
+	EditorOnly,
+	MainCamera,
+	Player,
+	GameController,
+	Avatar,
+	HitArea,
+	Robot,
+	Prop,
+	Wood,
+	Metal,
+	Water,
+	Sand,
+	Stone,
+	SolidWood,
+	Weapon,
+	MovableObject,
+	Grass,
+	Sticky,
+	DynamicProp,
+	Cement
+}
