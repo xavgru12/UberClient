@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--Project was exported from assembly: C:\Program Files (x86)\Steam\steamapps\common\UberStrike_v4-3-10\UberStrike_Data\Managed\UberStrike.DataCenter.UnitySdk.dll-->
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{9EF16267-BD53-49A0-B6B9-0E688F227045}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AssemblyName>UberStrike.DataCenter.UnitySdk</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <ApplicationVersion>1.0.2.98</ApplicationVersion>
+    <FileAlignment>512</FileAlignment>
+    <RootNamespace>UberStrike</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Cmune.Core.Models">
+      <HintPath>lib\Cmune.Core.Models.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+    <Reference Include="UberStrike.Core.Models">
+      <HintPath>lib\UberStrike.Core.Models.dll</HintPath>
+    </Reference>
+    <Reference Include="UberStrike.Core.Serialization">
+      <HintPath>lib\UberStrike.Core.Serialization.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>lib\UnityEngine.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DataCenter\UnitySdk\ApiVersion.cs" />
+    <Compile Include="WebService\Unity\Cryptography.cs" />
+    <Compile Include="WebService\Unity\ICryptographyPolicy.cs" />
+    <Compile Include="WebService\Unity\NullCryptographyPolicy.cs" />
+    <Compile Include="WebService\Unity\Configuration.cs" />
+    <Compile Include="WebService\Unity\SoapClient.cs" />
+    <Compile Include="WebService\Unity\ApplicationWebServiceClient.cs" />
+    <Compile Include="WebService\Unity\AuthenticationWebServiceClient.cs" />
+    <Compile Include="WebService\Unity\ClanWebServiceClient.cs" />
+    <Compile Include="WebService\Unity\ModerationWebServiceClient.cs" />
+    <Compile Include="WebService\Unity\PrivateMessageWebServiceClient.cs" />
+    <Compile Include="WebService\Unity\RelationshipWebServiceClient.cs" />
+    <Compile Include="WebService\Unity\ShopWebServiceClient.cs" />
+    <Compile Include="WebService\Unity\UserWebServiceClient.cs" />
+    <Compile Include="WebService\Unity\MonoInstance.cs" />
+    <Compile Include="WebService\Unity\WebServiceStatistics.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

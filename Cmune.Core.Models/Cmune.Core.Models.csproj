@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--Project was exported from assembly: C:\Program Files (x86)\Steam\steamapps\common\UberStrike_v4-3-10\UberStrike_Data\Managed\Cmune.Core.Models.dll-->
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{1760DEF3-C532-48D5-A236-3754A80CE238}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AssemblyName>Cmune.Core.Models</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <ApplicationVersion>1.0.2.98</ApplicationVersion>
+    <FileAlignment>512</FileAlignment>
+    <RootNamespace>Cmune</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DataCenter\Common\PrizeElementView.cs" />
+    <Compile Include="DataCenter\Common\Entities\BoxType.cs" />
+    <Compile Include="DataCenter\Common\Entities\PurchaseType.cs" />
+    <Compile Include="DataCenter\Common\Entities\ShopItemType.cs" />
+    <Compile Include="DataCenter\Common\Entities\BuyItemResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\BuyingDurationType.cs" />
+    <Compile Include="DataCenter\Common\Entities\BuyingType.cs" />
+    <Compile Include="DataCenter\Common\Entities\BuyingMarketType.cs" />
+    <Compile Include="DataCenter\Common\Entities\BuyingLocationType.cs" />
+    <Compile Include="DataCenter\Common\Entities\BuyingRecommendationType.cs" />
+    <Compile Include="DataCenter\Common\Entities\PackType.cs" />
+    <Compile Include="DataCenter\Common\Entities\PlaySpanTransactionType.cs" />
+    <Compile Include="DataCenter\Common\Entities\PaymentProviderType.cs" />
+    <Compile Include="DataCenter\Common\Entities\ReferrerPartnerType.cs" />
+    <Compile Include="DataCenter\Common\Entities\CurrencyType.cs" />
+    <Compile Include="DataCenter\Common\Entities\UberStrikeCurrencyType.cs" />
+    <Compile Include="DataCenter\Common\Entities\PointsDepositType.cs" />
+    <Compile Include="DataCenter\Common\Entities\EpinTransactionResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\BundleCategoryType.cs" />
+    <Compile Include="DataCenter\Common\Entities\BundleOperationResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberAuthenticationResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberRegistrationResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberOperationResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\AccountCompletionResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberMergeResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\MergePointsMode.cs" />
+    <Compile Include="DataCenter\Common\Entities\EsnsType.cs" />
+    <Compile Include="DataCenter\Common\Entities\Id3Type.cs" />
+    <Compile Include="DataCenter\Common\Entities\BanMode.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberAccessLevel.cs" />
+    <Compile Include="DataCenter\Common\Entities\GroupOperationResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\GroupType.cs" />
+    <Compile Include="DataCenter\Common\Entities\GroupPosition.cs" />
+    <Compile Include="DataCenter\Common\Entities\GroupFontStyle.cs" />
+    <Compile Include="DataCenter\Common\Entities\GroupColor.cs" />
+    <Compile Include="DataCenter\Common\Entities\GroupRequestStatus.cs" />
+    <Compile Include="DataCenter\Common\Entities\ContactRequestStatus.cs" />
+    <Compile Include="DataCenter\Common\Entities\ContactGroupOperationResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberReportType.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberReportStatus.cs" />
+    <Compile Include="DataCenter\Common\Entities\ModerationActionType.cs" />
+    <Compile Include="DataCenter\Common\Entities\EmailNotificationType.cs" />
+    <Compile Include="DataCenter\Common\Entities\PhotonGroupOperationResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\BuildType.cs" />
+    <Compile Include="DataCenter\Common\Entities\ChannelType.cs" />
+    <Compile Include="DataCenter\Common\Entities\EmbedType.cs" />
+    <Compile Include="DataCenter\Common\Entities\RegionType.cs" />
+    <Compile Include="DataCenter\Common\Entities\PhotonUsageType.cs" />
+    <Compile Include="DataCenter\Common\Entities\IssueType.cs" />
+    <Compile Include="DataCenter\Common\Entities\IdentityValidationType.cs" />
+    <Compile Include="DataCenter\Common\Entities\LocaleIdentifier.cs" />
+    <Compile Include="DataCenter\Common\Entities\ApplicationRegistrationResult.cs" />
+    <Compile Include="DataCenter\Common\Entities\EmailAddressStatus.cs" />
+    <Compile Include="DataCenter\Common\Entities\MarketingSubscriptionStatus.cs" />
+    <Compile Include="DataCenter\Common\Entities\PrizeElementType.cs" />
+    <Compile Include="DataCenter\Common\Entities\BoxTransactionView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ApplicationMilestoneView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ApplicationView.cs" />
+    <Compile Include="DataCenter\Common\Entities\BannedIpView.cs" />
+    <Compile Include="DataCenter\Common\Entities\BasicClanView.cs" />
+    <Compile Include="DataCenter\Common\Entities\BugView.cs" />
+    <Compile Include="DataCenter\Common\Entities\BundleItemView.cs" />
+    <Compile Include="DataCenter\Common\Entities\BundleView.cs" />
+    <Compile Include="DataCenter\Common\Entities\CheckApplicationVersionView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ClanCreationReturnView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ClanMemberView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ClanRequestAcceptView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ClanRequestDeclineView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ClanView.cs" />
+    <Compile Include="DataCenter\Common\Entities\CommonConfig.cs" />
+    <Compile Include="DataCenter\Common\Entities\CommonAppSettings.cs" />
+    <Compile Include="DataCenter\Common\Entities\DatabaseDeployment.cs" />
+    <Compile Include="DataCenter\Common\Entities\CmuneCacheKeys.cs" />
+    <Compile Include="DataCenter\Common\Entities\ContactGroupView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ContactRequestAcceptView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ContactRequestDeclineView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ContactRequestView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ConvertEntities.cs" />
+    <Compile Include="DataCenter\Common\Entities\CoreEnumsErrorMessage.cs" />
+    <Compile Include="DataCenter\Common\Entities\CreditPackItemView.cs" />
+    <Compile Include="DataCenter\Common\Entities\CreditPackView.cs" />
+    <Compile Include="DataCenter\Common\Entities\CurrencyDepositView.cs" />
+    <Compile Include="DataCenter\Common\Entities\EpinBatchView.cs" />
+    <Compile Include="DataCenter\Common\Entities\EpinView.cs" />
+    <Compile Include="DataCenter\Common\Entities\GroupCreationView.cs" />
+    <Compile Include="DataCenter\Common\Entities\GroupInvitationView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ItemInventoryView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ItemTransactionView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ItemView.cs" />
+    <Compile Include="DataCenter\Common\Entities\LuckyDrawSetUnityView.cs" />
+    <Compile Include="DataCenter\Common\Entities\LuckyDrawSetView.cs" />
+    <Compile Include="DataCenter\Common\Entities\LuckyDrawUnityView.cs" />
+    <Compile Include="DataCenter\Common\Entities\LuckyDrawView.cs" />
+    <Compile Include="DataCenter\Common\Entities\LuckyDrawSetItemView.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberPositionUpdateView.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberReportView.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberView.cs" />
+    <Compile Include="DataCenter\Common\Entities\MemberWalletView.cs" />
+    <Compile Include="DataCenter\Common\Entities\MessageThreadView.cs" />
+    <Compile Include="DataCenter\Common\Entities\ModerationActionView.cs" />
+    <Compile Include="DataCenter\Common\Entities\MysteryBoxItemView.cs" />
+    <Compile Include="DataCenter\Common\Entities\MysteryBoxUnityView.cs" />
+    <Compile Include="DataCenter\Common\Entities\MysteryBoxView.cs" />
+    <Compile Include="DataCenter\Common\Entities\MysteryBoxWonItemUnityView.cs" />
+    <Compile Include="DataCenter\Common\Entities\PackageView.cs" />
+    <Compile Include="DataCenter\Common\Entities\PointDepositView.cs" />
+    <Compile Include="DataCenter\Common\Entities\PrivateMessageView.cs" />
+    <Compile Include="DataCenter\Common\Entities\PublicProfileView.cs" />
+    <Compile Include="Core\Models\Views\PhotonsClusterView.cs" />
+    <Compile Include="Core\Models\Views\PhotonView.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
