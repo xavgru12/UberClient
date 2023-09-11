@@ -1,0 +1,50 @@
+﻿// Decompiled with JetBrains decompiler
+// Type: UberStrike.Core.Serialization.MemberWalletViewProxy
+// Assembly: UberStrike.UnitySdk, Version=1.0.1.0, Culture=neutral, PublicKeyToken=null
+// MVID: 5841A2D1-61BC-4235-BEF7-EC54B624B7CE
+// Assembly location: C:\Program Files (x86)\Steam\steamapps\common\UberStrike4-3-9\UberStrike_Data\Managed\UberStrike.UnitySdk.dll
+
+using Cmune.DataCenter.Common.Entities;
+using System.IO;
+
+namespace UberStrike.Core.Serialization
+{
+  public static class MemberWalletViewProxy
+  {
+    public static void Serialize(Stream stream, MemberWalletView instance)
+    {
+      int num = 0;
+      if (instance != null)
+      {
+        using (MemoryStream bytes = new MemoryStream())
+        {
+          Int32Proxy.Serialize((Stream) bytes, instance.Cmid);
+          Int32Proxy.Serialize((Stream) bytes, instance.Credits);
+          DateTimeProxy.Serialize((Stream) bytes, instance.CreditsExpiration);
+          Int32Proxy.Serialize((Stream) bytes, instance.Points);
+          DateTimeProxy.Serialize((Stream) bytes, instance.PointsExpiration);
+          Int32Proxy.Serialize(stream, ~num);
+          bytes.WriteTo(stream);
+        }
+      }
+      else
+        Int32Proxy.Serialize(stream, 0);
+    }
+
+    public static MemberWalletView Deserialize(Stream bytes)
+    {
+      int num = Int32Proxy.Deserialize(bytes);
+      MemberWalletView memberWalletView = (MemberWalletView) null;
+      if (num != 0)
+      {
+        memberWalletView = new MemberWalletView();
+        memberWalletView.Cmid = Int32Proxy.Deserialize(bytes);
+        memberWalletView.Credits = Int32Proxy.Deserialize(bytes);
+        memberWalletView.CreditsExpiration = DateTimeProxy.Deserialize(bytes);
+        memberWalletView.Points = Int32Proxy.Deserialize(bytes);
+        memberWalletView.PointsExpiration = DateTimeProxy.Deserialize(bytes);
+      }
+      return memberWalletView;
+    }
+  }
+}
