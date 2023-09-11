@@ -1,9 +1,4 @@
-﻿// Decompiled with JetBrains decompiler
-// Type: Cmune.DataCenter.Common.Entities.CommonConfig
-// Assembly: UberStrike.UnitySdk, Version=1.0.1.0, Culture=neutral, PublicKeyToken=null
-// MVID: 5841A2D1-61BC-4235-BEF7-EC54B624B7CE
-// Assembly location: C:\Program Files (x86)\Steam\steamapps\common\UberStrike4-3-9\UberStrike_Data\Managed\UberStrike.UnitySdk.dll
-
+﻿
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -22,8 +17,7 @@ namespace Cmune.DataCenter.Common.Entities
     public const string CmuneSupportEmailName = "The Cmune Team";
     public const string CmuneNoReplyEmail = "noreply@cmune.com";
     public const string CmuneNoReplyEmailName = "The Cmune Team";
-    public const string CmuneSupportCenterUrl = "http://support.uberstrike.com/";
-    public const string CmuneDevteamEmail = "devteam@cmune.com";
+    public const string CmuneSupportCenterUrl = "http:    public const string CmuneDevteamEmail = "devteam@cmune.com";
     public const string CmuneDevteamEmailName = "The Cmune Devteam";
     public const int IdentityValidationLifetimeInDays = 30;
     public const int AdminCmid = 767;
@@ -144,8 +138,7 @@ namespace Cmune.DataCenter.Common.Entities
       },
       {
         EsnsType.Facebook,
-        "http://www.facebook.com/profile.php?id="
-      },
+        "http:      },
       {
         EsnsType.Gmail,
         string.Empty
@@ -156,8 +149,7 @@ namespace Cmune.DataCenter.Common.Entities
       },
       {
         EsnsType.MySpace,
-        "http://www.myspace.com/"
-      },
+        "http:      },
       {
         EsnsType.None,
         string.Empty

@@ -1,9 +1,4 @@
-﻿// Decompiled with JetBrains decompiler
-// Type: Cmune.DataCenter.Common.Entities.CoreEnumsErrorMessage
-// Assembly: UberStrike.UnitySdk, Version=1.0.1.0, Culture=neutral, PublicKeyToken=null
-// MVID: 5841A2D1-61BC-4235-BEF7-EC54B624B7CE
-// Assembly location: C:\Program Files (x86)\Steam\steamapps\common\UberStrike4-3-9\UberStrike_Data\Managed\UberStrike.UnitySdk.dll
-
+﻿
 namespace Cmune.DataCenter.Common.Entities
 {
   public static class CoreEnumsErrorMessage
@@ -55,8 +50,7 @@ namespace Cmune.DataCenter.Common.Entities
           operationErrorMessage = "That doesn't look like a valid password to me!";
           goto case MemberOperationResult.Ok;
         default:
-          operationErrorMessage = "Sorry, our system encountered a problem. Please try again and if the problem continues visit http://support.uberstrike.com/.";
-          goto case MemberOperationResult.Ok;
+          operationErrorMessage = "Sorry, our system encountered a problem. Please try again and if the problem continues visit http:          goto case MemberOperationResult.Ok;
       }
     }
 
@@ -66,11 +60,9 @@ namespace Cmune.DataCenter.Common.Entities
       switch (banMode)
       {
         case BanMode.Temporary:
-          modeErrorMessage = "Your account has been banned until " + info + ". If you want to dispute the ban please visit http://support.uberstrike.com/.";
-          break;
+          modeErrorMessage = "Your account has been banned until " + info + ". If you want to dispute the ban please visit http:          break;
         case BanMode.Permanent:
-          modeErrorMessage = "Your account has been permanently banned. Common ban offences include cheating and in-game abuse. If you want to dispute the ban please visit http://support.uberstrike.com/.";
-          break;
+          modeErrorMessage = "Your account has been permanently banned. Common ban offences include cheating and in-game abuse. If you want to dispute the ban please visit http:          break;
       }
       return modeErrorMessage;
     }
