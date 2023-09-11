@@ -1,4 +1,9 @@
-﻿
+﻿// Decompiled with JetBrains decompiler
+// Type: UberStrike.WebService.Unity.SoapClient
+// Assembly: UberStrike.UnitySdk, Version=1.0.1.0, Culture=neutral, PublicKeyToken=null
+// MVID: 5841A2D1-61BC-4235-BEF7-EC54B624B7CE
+// Assembly location: C:\Program Files (x86)\Steam\steamapps\common\UberStrike4-3-9\UberStrike_Data\Managed\UberStrike.UnitySdk.dll
+
 using System;
 using System.Collections;
 using System.Text;
@@ -47,9 +52,11 @@ namespace UberStrike.WebService.Unity
       Action<Exception> exceptionHandler)
     {
       int requestId = SoapClient._requestId++;
-      string postData = "<s:Envelope xmlns:s=\"http:      byte[] byteArray = Encoding.UTF8.GetBytes(postData);
+      string postData = "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\"><s:Body><" + methodName + " xmlns=\"http://tempuri.org/\"><data>" + Convert.ToBase64String(data) + "</data></" + methodName + "></s:Body></s:Envelope>";
+      byte[] byteArray = Encoding.UTF8.GetBytes(postData);
       Hashtable headers = new Hashtable();
-      headers.Add((object) "SOAPAction", (object) ("\"http:      headers.Add((object) "Content-type", (object) "text/xml; charset=utf-8");
+      headers.Add((object) "SOAPAction", (object) ("\"http://tempuri.org/" + interfaceName + "/" + methodName + "\""));
+      headers.Add((object) "Content-type", (object) "text/xml; charset=utf-8");
       XmlDocument doc = new XmlDocument();
       float startTime = Time.realtimeSinceStartup;
       SoapClient.LogRequest(requestId, startTime, data.Length, interfaceName, serviceName, methodName);

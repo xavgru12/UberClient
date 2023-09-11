@@ -1,4 +1,9 @@
-﻿
+﻿// Decompiled with JetBrains decompiler
+// Type: Cmune.Realtime.Common.CommActorInfo
+// Assembly: UberStrike.UnitySdk, Version=1.0.1.0, Culture=neutral, PublicKeyToken=null
+// MVID: 5841A2D1-61BC-4235-BEF7-EC54B624B7CE
+// Assembly location: C:\Program Files (x86)\Steam\steamapps\common\UberStrike4-3-9\UberStrike_Data\Managed\UberStrike.UnitySdk.dll
+
 using Cmune.Core.Types.Attributes;
 using Cmune.DataCenter.Common.Entities;
 using System;
@@ -79,6 +84,9 @@ namespace Cmune.Realtime.Common
       Ghosted = 2,
       Banned = 4,
       Speedhacking = 8,
-      Spamming = 16,       Language = 32,       Name = 64,     }
+      Spamming = 16, // 0x00000010
+      Language = 32, // 0x00000020
+      Name = 64, // 0x00000040
+    }
   }
 }
