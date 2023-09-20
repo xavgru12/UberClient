@@ -278,7 +278,7 @@ namespace Cmune.Realtime.Photon.Client
         this.NetworkID = new short?(networkID);
       }
 
-      public override string ToString() => this.NetworkClass != null ? string.Format("Iid {0}, Nid {1}, ReqSent {2}", (object) this.NetworkClass.InstanceID, (object) (short) ((int) this.NetworkID ?? -1), (object) this.IsRequestSent) : string.Format("RegistrationJob for {0} is NULL", (object) this.LocalID);
+      public override string ToString() => this.NetworkClass != null ? string.Format("Iid {0}, Nid {1}, ReqSent {2}", (object) this.NetworkClass.InstanceID, (short) ((int?) this.NetworkID ?? -1), (object) this.IsRequestSent) : string.Format("RegistrationJob for {0} is NULL", (object) this.LocalID);
     }
   }
 }
