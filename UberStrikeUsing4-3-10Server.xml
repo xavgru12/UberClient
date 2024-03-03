@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<UberStrike>
+  <Application
+    BuildType="Prod"
+    DebugLevel="Error"
+    Version="4.3.10"
+    WebServiceBaseUrl="http://127.0.0.1/"
+    ContentBaseUrl="http://127.0.0.1/"
+    ItemAssetBundleUrl="http://static.cmune.com/UberStrike/Items/4.3.9/Items.xml"
+    ChannelType="WindowsStandalone" />
+</UberStrike>
