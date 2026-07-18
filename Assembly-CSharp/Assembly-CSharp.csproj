@@ -779,6 +779,7 @@
     <Compile Include="WeaponShootAnimator.cs" />
     <Compile Include="WeaponShootEvent.cs" />
     <Compile Include="WeaponSimulator.cs" />
+    <Compile Include="WeaponSkinHelper.cs" />
     <Compile Include="WeaponSlot.cs" />
     <Compile Include="WeaponTailSound.cs" />
     <Compile Include="WeekendChallengePopupDialog.cs" />
@@ -793,6 +794,35 @@
       <Project>{fa2878ab-26c6-4a1d-8c38-8f8981e7ba33}</Project>
       <Name>Assembly-CSharp-firstpass</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="WeaponSkins\9007_PlasmaBat.png">
+      <LogicalName>9007_PlasmaBat.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9009_CryoStrike.png">
+      <LogicalName>9009_CryoStrike.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9010_SolarCannon.png">
+      <LogicalName>9010_SolarCannon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9011_ToxicSplatter.png">
+      <LogicalName>9011_ToxicSplatter.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9007_PlasmaBat_Icon.png">
+      <LogicalName>9007_PlasmaBat_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9008_InfernoMG_Icon.png">
+      <LogicalName>9008_InfernoMG_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9009_CryoStrike_Icon.png">
+      <LogicalName>9009_CryoStrike_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9010_SolarCannon_Icon.png">
+      <LogicalName>9010_SolarCannon_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9011_ToxicSplatter_Icon.png">
+      <LogicalName>9011_ToxicSplatter_Icon.png</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

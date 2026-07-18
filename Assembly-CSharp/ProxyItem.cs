@@ -58,6 +58,12 @@ public class ProxyItem : IUnityItem
 		{
 			m_Icon = UnityItemConfiguration.Instance.GetDefaultIcon(view.ItemClass);
 		}
+
+		Texture2D skinIcon = WeaponSkinHelper.GetIconTexture(view.ID);
+		if (skinIcon != null)
+		{
+			m_Icon = skinIcon;
+		}
 	}
 
 	public void UpdateProxyItem(BaseUberStrikeItemView view)
