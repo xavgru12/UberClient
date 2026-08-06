@@ -108,8 +108,8 @@ public static class ApplicationDataManager
 #endif
         if (!IsDebug)
         {
-            WebServiceBaseUrl = "127.0.0.1/2.0/";
-            ImagePath = "127.0.0.1/images/";
+            WebServiceBaseUrl = "steam-dev.uberstrike.com/2.0/";
+            ImagePath = "steam-dev.uberstrike.com/images/";
             Version = "4.8.6";
         }
         else
