@@ -108,8 +108,8 @@ public static class ApplicationDataManager
 #endif
         if (!IsDebug)
         {
-            WebServiceBaseUrl = "15.188.60.2/2.0/";
-            ImagePath = "15.188.60.2/images/";
+            WebServiceBaseUrl = "127.0.0.1/2.0/";
+            ImagePath = "127.0.0.1/images/";
             Version = "4.8.6";
         }
         else
