@@ -24,11 +24,12 @@ internal class WindowsUpdater
 
 	private static string gamepath = Directory.GetCurrentDirectory();
 
-	private static string url_latest = "https://raw.githubusercontent.com/HaZardousss/UberUpdates/master/Entry.txt";
+	private static string url_latest = "http://client-steam.uberstrike.com/Entry.txt";
 
-	private static string url_auth = "https://raw.githubusercontent.com/HaZardousss/UberUpdates/master/Auth";
+	private static string url_auth = "http://client-steam.uberstrike.com/Auth";
 
-	private static string url_windows = "https://raw.githubusercontent.com/HaZardousss/UberUpdates/master/Windows";
+	private static string url_windows = "http://client-steam.uberstrike.com/Windows";
+
 	public static IEnumerator Updater()
 	{
 		if (Directory.Exists(gamepath + "\\Updates"))
