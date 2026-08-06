@@ -65,6 +65,34 @@ public static class WeaponSkinHelper
 		{ 9011, "9011_ToxicSplatter_Icon.png" },
 	};
 
+	// Optional per item tracer: gives a weapon a travelling muzzle to hitpoint beam it
+	// would not otherwise have, in a custom colour. Purely cosmetic, but note it IS
+	// visible in gameplay rather than being a pure re-texture like everything above.
+	public struct TracerSpec
+	{
+		public ParticleConfigurationType Effect;
+		public Color Start;
+		public Color End;
+
+		// Material _TintColor, deliberately separate from the line colours because it is
+		// MULTIPLIED by the trail texture. SRParticleLanceTrail5 averages RGB 144,91,45,
+		// so its blue channel is only about 0.18 against red at 0.56 and an even handed
+		// pink tint comes out RED. Channels are compensated roughly target/texture, which
+		// is why blue exceeds 1.0. Unity allows that for material colours.
+		public Color MatTint;
+	}
+
+	public static readonly Dictionary<int, TracerSpec> TracerOverrides = new Dictionary<int, TracerSpec>
+	{
+		// Only ParticleLance and FusionLance set UseTrailrendererForTrail, so ParticleLance
+		// is what actually produces a beam. The stock SniperRifleDefault is muzzle flash only.
+		{ 9012, new TracerSpec {
+			Effect  = ParticleConfigurationType.ParticleLance,
+			Start   = new Color(1.00f, 0.45f, 0.85f, 1f),
+			End     = new Color(1.00f, 0.15f, 0.60f, 1f),
+			MatTint = new Color(0.90f, 0.30f, 3.00f, 1f) } },
+	};
+
 	private static readonly Dictionary<int, Texture2D> _skinCache = new Dictionary<int, Texture2D>();
 	private static readonly Dictionary<int, Texture2D> _iconCache = new Dictionary<int, Texture2D>();
 
@@ -137,6 +165,10 @@ public static class WeaponSkinHelper
 		if (weaponRoot == null)
 			return;
 
+		// Before the texture check: the tracer is independent of whether this item has
+		// a skin registered, so an item could have one without the other.
+		ApplyTracer(weaponRoot, itemId);
+
 		Texture2D tex = GetSkinTexture(itemId);
 		if (tex == null)
 			return; // not one of our skins, leave the weapon alone
@@ -150,6 +182,89 @@ public static class WeaponSkinHelper
 			r.material.mainTexture = tex;
 			if (r.material.HasProperty("_MainTex"))
 				r.material.SetTexture("_MainTex", tex);
+		}
+	}
+
+	/// <summary>
+	/// Swap the weapon's impact/particle config so it draws a travelling beam, and attach
+	/// the tinter that recolours each spawned trail.
+	/// </summary>
+	public static void ApplyTracer(GameObject weaponRoot, int itemId)
+	{
+		TracerSpec spec;
+		if (!TracerOverrides.TryGetValue(itemId, out spec))
+			return; // no tracer for this item, leave the weapon alone
+
+		BaseWeaponDecorator decorator = weaponRoot.GetComponent<BaseWeaponDecorator>();
+		if (decorator == null)
+			return;
+
+		decorator.SetSurfaceEffect(spec.Effect);
+
+		WeaponTracerTinter tinter = weaponRoot.GetComponent<WeaponTracerTinter>();
+		if (tinter == null)
+			tinter = weaponRoot.AddComponent<WeaponTracerTinter>();
+		tinter.StartColour = spec.Start;
+		tinter.EndColour = spec.End;
+		tinter.MatTint = spec.MatTint;
+	}
+
+}
+
+
+/// <summary>
+/// Recolours the muzzle to hitpoint beam produced by MoveTrailrendererObject.
+///
+/// Two things make this less obvious than it looks:
+///
+/// 1. The trail is NOT under the weapon. BaseWeaponDecorator caches
+///    _parent = transform.parent during Awake, but WeaponSlot.ConfigureWeaponDecorator
+///    re-parents the decorator afterwards, so _parent is stale and effectively null.
+///    ParticleEffectController.ShowTrailEffect then parents each spawned trail to that,
+///    which drops it at the scene root. Hence the scene wide lookup rather than a walk
+///    down our own hierarchy.
+///
+/// 2. Colour lives in two places. The LineRenderer vertex colours decide the hue (the
+///    stock ParticleLance gradient has red at zero, which is exactly why that beam reads
+///    cyan no matter what the material says), while the material _TintColor is multiplied
+///    by the trail texture. MoveTrailrendererObject.Update only rewrites _TintColor's
+///    alpha and preserves RGB, so a tint applied once survives the whole fade.
+///
+/// Renderer.material returns a per instance copy, so nothing shared is touched. That
+/// matters because SRParticleLanceTrail.mat is also used by SpringGrenade and
+/// LR_FinalWord_MissileSticky.
+/// </summary>
+public class WeaponTracerTinter : MonoBehaviour
+{
+	public Color StartColour = Color.white;
+	public Color EndColour = Color.white;
+	public Color MatTint = Color.white;
+
+	private void LateUpdate()
+	{
+		UnityEngine.Object[] trails = UnityEngine.Object.FindObjectsOfType(typeof(MoveTrailrendererObject));
+		for (int i = 0; i < trails.Length; i++)
+		{
+			MoveTrailrendererObject trail = trails[i] as MoveTrailrendererObject;
+			if (trail == null)
+				continue;
+
+			LineRenderer line = trail.GetComponent<LineRenderer>();
+			if (line == null)
+				line = trail.GetComponentInChildren<LineRenderer>();
+			if (line == null)
+				continue;
+
+			// SetColors, not startColor/endColor: those properties are Unity 5.5 and later,
+			// and this client is built with Unity 4.6.5.
+			line.SetColors(StartColour, EndColour);
+
+			Material mat = line.material;
+			if (mat != null && mat.HasProperty("_TintColor"))
+			{
+				Color existing = mat.GetColor("_TintColor");
+				mat.SetColor("_TintColor", new Color(MatTint.r, MatTint.g, MatTint.b, existing.a));
+			}
 		}
 	}
 }
