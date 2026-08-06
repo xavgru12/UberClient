@@ -199,6 +199,7 @@ internal class WindowsUpdater
 		DeleteUnnecessary();
 		AuthenticationManager._progress.Text = "Installing update...";
 		CopyFiles(Path.Combine(gamepath, "Updates\\UberStrike"), gamepath);
+<<<<<<< Updated upstream
 		try
 		{
 			Process.Start(Path.Combine(Directory.GetCurrentDirectory(), "UberStrike.exe"));
@@ -251,6 +252,8 @@ internal class WindowsUpdater
 			thread.Start();
 		}
 		Application.Quit();
+=======
+>>>>>>> Stashed changes
 	}
 
 	private static void CopyFiles(string sourcePath, string destinationPath)
