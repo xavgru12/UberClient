@@ -24,11 +24,11 @@ internal class WindowsUpdater
 
 	private static string gamepath = Directory.GetCurrentDirectory();
 
-	private static string url_latest = "http://client-steam.uberstrike.com/Entry.txt";
+	private static string url_latest = "http://client-steam-dev.uberstrike.com/Entry.txt";
 
-	private static string url_auth = "http://client-steam.uberstrike.com/Auth";
+	private static string url_auth = "http://client-steam-dev.uberstrike.com/Auth";
 
-	private static string url_windows = "http://client-steam.uberstrike.com/Windows";
+	private static string url_windows = "http://client-steam-dev.uberstrike.com/Windows";
 
 	public static IEnumerator Updater()
 	{
