@@ -808,6 +808,18 @@
     <EmbeddedResource Include="WeaponSkins\9011_ToxicSplatter.png">
       <LogicalName>9011_ToxicSplatter.png</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9012_VoidAmethyst.png">
+      <LogicalName>9012_VoidAmethyst.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9013_Bloodhound.png">
+      <LogicalName>9013_Bloodhound.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9014_AbyssalLeviathan.png">
+      <LogicalName>9014_AbyssalLeviathan.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9015_NeonCircuit.png">
+      <LogicalName>9015_NeonCircuit.png</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="WeaponSkins\9007_PlasmaBat_Icon.png">
       <LogicalName>9007_PlasmaBat_Icon.png</LogicalName>
     </EmbeddedResource>

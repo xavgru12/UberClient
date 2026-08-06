@@ -39,6 +39,21 @@ public static class WeaponSkinHelper
 		{ 9009, "9009_CryoStrike.png" },
 		{ 9010, "9010_SolarCannon.png" },
 		{ 9011, "9011_ToxicSplatter.png" },
+		// 2026-08-06 batch. Sniper, shotgun and cannon port cleanly to the 4.7.1
+		// meshes: like the four above, these are authored against the 4.3.8 base UV
+		// layouts, which measure 0.959 to 0.979 island recall against the meshes
+		// this client actually uses.
+		{ 9012, "9012_VoidAmethyst.png" },
+		{ 9013, "9013_Bloodhound.png" },
+		{ 9014, "9014_AbyssalLeviathan.png" },
+		// 9015 Neon Circuit is embedded but deliberately NOT registered, same as
+		// 9008, and for the same reason: both are MachineGun skins. The 4.7.1
+		// MachineGun is a different model from the 4.3.8 one these textures target,
+		// not merely a rotated UV set, so reorienting the texture cannot fix it and
+		// it needs repainting against the 4.7.1 layout. Measured island recall is
+		// 0.899 for both, against 0.959+ for every skin that renders correctly.
+		// Verified in game 2026-08-06. Re-enabling is a one line change once the
+		// texture is redone.
 	};
 
 	public static readonly Dictionary<int, string> IconTextures = new Dictionary<int, string>
