@@ -129,6 +129,7 @@ internal class WindowsUpdater
 			bool ok = string.IsNullOrEmpty(www.error) && bytes != null && bytes.Length > 0;
 			if (ok && long.TryParse(expectedSize, out long expected) && expected > 0 && bytes.Length != expected)
 			{
+				UnityEngine.Debug.LogError("size mismatch for " + link + " (expected=" + expected + ", actual=" + bytes.Length + ")");
 				ok = false;
 			}
 			if (ok && !string.IsNullOrEmpty(expectedMd5))
@@ -140,6 +141,7 @@ internal class WindowsUpdater
 				}
 				if (!expectedMd5.Equals(actualMd5, StringComparison.OrdinalIgnoreCase))
 				{
+					UnityEngine.Debug.LogError("Server side Entry.txt md5 hash does not match for " + link + " (expected=" + expectedMd5 + ", actual=" + actualMd5 + ")");
 					ok = false;
 				}
 			}
