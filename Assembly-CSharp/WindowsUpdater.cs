@@ -20,14 +20,15 @@ internal class WindowsUpdater
 
 	private static List<string[]> DownloadList = new List<string[]>();
 
+	private static bool downloadError;
+
 	private static string gamepath = Directory.GetCurrentDirectory();
 
 	private static string url_latest = "https://raw.githubusercontent.com/HaZardousss/UberUpdates/master/Entry.txt";
 
 	private static string url_auth = "https://raw.githubusercontent.com/HaZardousss/UberUpdates/master/Auth";
 
-	private static int currentdownloadcount = 0;
-
+	private static string url_windows = "https://raw.githubusercontent.com/HaZardousss/UberUpdates/master/Windows";
 	public static IEnumerator Updater()
 	{
 		if (Directory.Exists(gamepath + "\\Updates"))
@@ -73,16 +74,16 @@ internal class WindowsUpdater
 		{
 			yield return null;
 			string lines = gamepath + "\\" + FileData[i][0];
-			string downlink = "https://raw.githubusercontent.com/HaZardousss/UberUpdates/master/Windows/" + FileData[i][0].Replace("\\", "/");
+			string downlink = url_windows + "/" + FileData[i][0].Replace("\\", "/");
 			string downpath = gamepath + "\\Updates\\UberStrike\\" + FileData[i][0];
 			yield return null;
 			if (!File.Exists(lines))
 			{
-				AddToDownload(downlink, downpath, FileData[i][2]);
+				AddToDownload(downlink, downpath, FileData[i][1], FileData[i][2]);
 			}
 			else if (!FileData[i][1].Equals(CalculateMD5(lines)))
 			{
-				AddToDownload(downlink, downpath, FileData[i][2]);
+				AddToDownload(downlink, downpath, FileData[i][1], FileData[i][2]);
 			}
 		}
 		if (DownloadList.Count == 0)
@@ -90,23 +91,28 @@ internal class WindowsUpdater
 			NoUpdate();
 			yield break;
 		}
-		PopupSystem.Show(AuthenticationManager._progress);
 		i = 0;
+		downloadError = false;
 		while (i < DownloadList.Count)
 		{
 			yield return null;
-			yield return UnityRuntime.StartRoutine(WWWDownload(DownloadList[currentdownloadcount][1], DownloadList[currentdownloadcount][0], (i + 1).ToString() + " / " + DownloadList.Count.ToString()));
+			yield return UnityRuntime.StartRoutine(WWWDownload(DownloadList[i][1], DownloadList[i][0], DownloadList[i][2], DownloadList[i][3], (i + 1).ToString() + " / " + DownloadList.Count.ToString()));
+			if (downloadError)
+			{
+				break;
+			}
 			i++;
-			currentdownloadcount++;
+		}
+		if (downloadError)
+		{
+			NoUpdate();
+			ApplicationDataManager.LockApplication("Could not download update files from the server. Please try again later.");
+			yield break;
 		}
 		Finished();
-		while (true)
-		{
-			yield return new WaitForSeconds(5f);
-		}
 	}
 
-	private static IEnumerator WWWDownload(string path, string link, string index)
+	private static IEnumerator WWWDownload(string path, string link, string expectedMd5, string expectedSize, string index)
 	{
 		using (WWW www = new WWW(link))
 		{
@@ -117,7 +123,33 @@ internal class WindowsUpdater
 				yield return null;
 			}
 			yield return new WaitForSeconds(0.1f);
-			File.WriteAllBytes(path, www.bytes);
+
+			// Do not trust the download. Recheck size and md5 hash to ensure the file is valid.
+			byte[] bytes = www.bytes;
+			bool ok = string.IsNullOrEmpty(www.error) && bytes != null && bytes.Length > 0;
+			if (ok && long.TryParse(expectedSize, out long expected) && expected > 0 && bytes.Length != expected)
+			{
+				ok = false;
+			}
+			if (ok && !string.IsNullOrEmpty(expectedMd5))
+			{
+				string actualMd5;
+				using (MD5 mD = MD5.Create())
+				{
+					actualMd5 = BitConverter.ToString(mD.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+				}
+				if (!expectedMd5.Equals(actualMd5, StringComparison.OrdinalIgnoreCase))
+				{
+					ok = false;
+				}
+			}
+			if (!ok)
+			{
+				UnityEngine.Debug.LogError("Download failed or corrupted for " + link + " (error=" + www.error + ", bytes=" + ((bytes != null) ? bytes.Length : (-1)) + ", expected=" + expectedSize + ")");
+				downloadError = true;
+				yield break;
+			}
+			File.WriteAllBytes(path, bytes);
 		}
 		yield return new WaitForEndOfFrame();
 	}
@@ -146,13 +178,14 @@ internal class WindowsUpdater
 		}
 	}
 
-	private static void AddToDownload(string link, string downloadpath, string downloadsize)
+	private static void AddToDownload(string link, string downloadpath, string expectedMd5, string downloadsize)
 	{
 		Directory.CreateDirectory(Path.GetDirectoryName(downloadpath));
-		string[] item = new string[3]
+		string[] item = new string[4]
 		{
 			link,
 			downloadpath,
+			expectedMd5,
 			downloadsize
 		};
 		DownloadList.Add(item);
@@ -161,46 +194,42 @@ internal class WindowsUpdater
 	private static void Finished()
 	{
 		DeleteUnnecessary();
-		CopyFiles(Path.Combine(Directory.GetCurrentDirectory(), "Updates\\Uberstrike"), Directory.GetCurrentDirectory());
-		Process.Start(Path.Combine(Directory.GetCurrentDirectory(), "UberStrike.exe")).WaitForExit();
+		AuthenticationManager._progress.Text = "Installing update...";
+		CopyFiles(Path.Combine(gamepath, "Updates\\UberStrike"), gamepath);
+		try
+		{
+			Process.Start(Path.Combine(Directory.GetCurrentDirectory(), "UberStrike.exe")).WaitForExit();
+		}
+		catch (Exception e)
+		{
+			UnityEngine.Debug.LogError(e);
+		}
 		Application.Quit();
 	}
 
-	private static void CopyFiles(string SourcePath,string DestinationPath)
+	private static void CopyFiles(string sourcePath, string destinationPath)
 	{
-		foreach (string dirPath in Directory.GetDirectories(SourcePath, "*",SearchOption.AllDirectories))
+		try
 		{
-			try
+			foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
 			{
-				if(!Directory.Exists(dirPath.Replace(SourcePath, DestinationPath)))
-					Directory.CreateDirectory(dirPath.Replace(SourcePath, DestinationPath));
+				Directory.CreateDirectory(dirPath.Replace(sourcePath, destinationPath));
 			}
-			catch(Exception e)
+			foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
 			{
-				UnityEngine.Debug.LogError(e);
+				try
+				{
+					File.Copy(newPath, newPath.Replace(sourcePath, destinationPath), true);
+				}
+				catch (Exception e)
+				{
+					UnityEngine.Debug.LogError(e);
+				}
 			}
 		}
-		foreach (string newPath in Directory.GetFiles(SourcePath, "*.*",SearchOption.AllDirectories))
+		catch (Exception e)
 		{
-			try
-			{
-				string dest = newPath.Replace(SourcePath, DestinationPath);
-				UnityEngine.Debug.LogError($"Path = {dest}");
-				if(File.Exists(dest))
-				{
-					UnityEngine.Debug.LogError($"File exists at {dest} trying to move it to temp");
-					File.Move(dest, dest + ".bkp");
-					UnityEngine.Debug.LogError($"Moved successfully");
-					File.Delete(dest + ".bkp");
-					UnityEngine.Debug.LogError($"Temp file deleted");					
-				}
-				File.Copy(newPath, dest, true);
-				UnityEngine.Debug.LogError("Copied successfully");
-			}
-			catch(Exception e)
-			{
-				UnityEngine.Debug.LogError(e);
-			}
+			UnityEngine.Debug.LogError(e);
 		}
 	}
 
