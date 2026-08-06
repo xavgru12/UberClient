@@ -1,4 +1,4 @@
-using Steamworks;
+﻿using Steamworks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,6 +22,8 @@ internal class WindowsUpdater
 
 	private static bool downloadError;
 
+	public static bool IsUpdateRoutineComplete { get; private set; }
+
 	private static string gamepath = Directory.GetCurrentDirectory();
 
 	private static string url_latest = "http://client-steam-dev.uberstrike.com/Entry.txt";
@@ -32,6 +34,7 @@ internal class WindowsUpdater
 
 	public static IEnumerator Updater()
 	{
+		IsUpdateRoutineComplete = false;
 		if (Directory.Exists(gamepath + "\\Updates"))
 		{
 			Directory.Delete(gamepath + "\\Updates", recursive: true);
@@ -199,6 +202,7 @@ internal class WindowsUpdater
 		DeleteUnnecessary();
 		AuthenticationManager._progress.Text = "Installing update...";
 		CopyFiles(Path.Combine(gamepath, "Updates\\UberStrike"), gamepath);
+		IsUpdateRoutineComplete = true;
 	}
 
 	private static void CopyFiles(string sourcePath, string destinationPath)
@@ -251,6 +255,7 @@ internal class WindowsUpdater
 			}
 		}
 		catch(Exception e) { UnityEngine.Debug.LogError(e); }
+		IsUpdateRoutineComplete = true;
 	}
 
 	private static int DeleteFolder(string path)
