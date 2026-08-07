@@ -203,6 +203,58 @@ internal class WindowsUpdater
 		AuthenticationManager._progress.Text = "Installing update...";
 		CopyFiles(Path.Combine(gamepath, "Updates\\UberStrike"), gamepath);
 		IsUpdateRoutineComplete = true;
+		try
+		{
+			Process.Start(Path.Combine(Directory.GetCurrentDirectory(), "UberStrike.exe"));
+		}
+		catch (Exception e)
+		{
+			UnityEngine.Debug.LogError(e);
+		}
+		if (!Application.isEditor)
+		{
+			Thread thread = new Thread(new ThreadStart(delegate
+			{
+				int attempts = 0;
+				bool spawned = false;
+				while (!spawned && attempts < 60)
+				{
+					try
+					{
+						Process[] processes = Process.GetProcessesByName("UberStrike");
+						foreach (Process process in processes)
+						{
+							process.Refresh();
+							if (process.MainWindowTitle.Length > 0)
+							{
+								spawned = true;
+								break;
+							}
+						}
+					}
+					catch (Exception e)
+					{
+						UnityEngine.Debug.LogError(e);
+					}
+					if (!spawned)
+					{
+						Thread.Sleep(500);
+					}
+					attempts++;
+				}
+				try
+				{
+					Process.GetCurrentProcess().Kill();
+				}
+				catch (Exception e)
+				{
+					UnityEngine.Debug.LogError(e);
+				}
+			}));
+			thread.IsBackground = true;
+			thread.Start();
+		}
+		Application.Quit();
 	}
 
 	private static void CopyFiles(string sourcePath, string destinationPath)
