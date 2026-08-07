@@ -205,7 +205,7 @@ internal class WindowsUpdater
 		IsUpdateRoutineComplete = true;
 		try
 		{
-			Process.Start(Path.Combine(Directory.GetCurrentDirectory(), "UberStrike.exe"));
+			Process.Start(Path.Combine(gamepath, "UberStrike.exe"));
 		}
 		catch (Exception e)
 		{
