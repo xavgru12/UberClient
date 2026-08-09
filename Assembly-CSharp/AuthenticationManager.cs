@@ -77,6 +77,11 @@ public class AuthenticationManager : Singleton<AuthenticationManager>
 			PopupSystem.Show(_progress);
 			yield return UnityRuntime.StartRoutine(WindowsUpdater.Updater());
 
+			if (!WindowsUpdater.IsUpdateRoutineComplete)
+			{
+				PopupSystem.HideMessage(_progress);
+				yield break;
+			}
 			_progress.Text = "Checking Client";
 			_progress.Progress = 0f;
 			bool Success = false;
