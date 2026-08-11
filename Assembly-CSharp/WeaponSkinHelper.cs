@@ -45,14 +45,13 @@ public static class WeaponSkinHelper
 		{ 9012, "9012_VoidAmethyst.png" },
 		{ 9013, "9013_Bloodhound.png" },
 		{ 9014, "9014_AbyssalLeviathan.png" },
-		// 9015 Neon Circuit is embedded but deliberately NOT registered, same as
-		// 9008, and for the same reason: both are MachineGun skins. The 4.7.1
-		// MachineGun is a different model from the 4.3.8 one these textures target,
-		// not merely a rotated UV set, so reorienting the texture cannot fix it and
-		// it needs repainting against the 4.7.1 layout. Measured island recall is
-		// 0.899 for both, against 0.959+ for every skin that renders correctly.
-		// Verified in game 2026-08-06. Re-enabling is a one line change once the
-		// texture is redone.
+		// 9015 repainted 2026-08-11 against the 4.7.1 MachineGun base. The original was
+		// authored on the 4.3.8 texture, whose UV layout uses 47% of the sheet against
+		// 4.7.1's 87%, so it left ~37% of the mesh unpainted and rendered black in patches.
+		// The repaint measures 5.1% unpainted, in line with every skin that renders
+		// correctly (0.4% to 4.4%). 9008 Inferno MG is still parked for the same original
+		// reason and needs the same repaint.
+		{ 9015, "9015_NeonCircuit.png" },
 	};
 
 	public static readonly Dictionary<int, string> IconTextures = new Dictionary<int, string>
@@ -199,6 +198,27 @@ public static class WeaponSkinHelper
 		foreach (Renderer r in renderers)
 		{
 			if (r == null || r.material == null)
+				continue;
+
+			// Skip effect renderers. A weapon's children include its muzzle flash and shell
+			// casing, which use "Particle Add" and friends, and painting the gun's diffuse
+			// onto an additive quad makes the flash render as a bright rectangle showing a
+			// slab of the UV atlas.
+			//
+			// This has been wrong since the first version of this file, but it stayed
+			// invisible for a long time by luck: the earlier skins carried a specular mask
+			// that is 82-84% near-zero alpha, so the additive quad multiplied out to nothing.
+			// The 4.7.1 MachineGun base's mask is 74.6% MID-range, so the same bug finally
+			// showed up as a visible square. Measured, not guessed.
+			//
+			// Verified in game 2026-08-11: the square is gone. Note the flash then renders
+			// as NOTHING rather than as the stock flash, which is not what skipping the
+			// assignment alone should do, so something else on that quad depends on this
+			// path. Accepted as-is for now; a skinned weapon with no muzzle flash is a
+			// better outcome than one with a bright rectangle, but this is not fully
+			// understood and is worth revisiting.
+			Shader sh = r.material.shader;
+			if (sh != null && sh.name != null && sh.name.IndexOf("Particle", StringComparison.OrdinalIgnoreCase) >= 0)
 				continue;
 
 			r.material.mainTexture = tex;
