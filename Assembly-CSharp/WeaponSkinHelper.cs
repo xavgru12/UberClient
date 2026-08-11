@@ -23,7 +23,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using UnityEngine;
 
 public static class WeaponSkinHelper
@@ -96,32 +95,55 @@ public static class WeaponSkinHelper
 	private static readonly Dictionary<int, Texture2D> _skinCache = new Dictionary<int, Texture2D>();
 	private static readonly Dictionary<int, Texture2D> _iconCache = new Dictionary<int, Texture2D>();
 
-	private static Texture2D LoadEmbedded(string resourceName)
+	/// <summary>
+	/// Folder holding the skin PNGs, relative to <c>UberStrike_Data</c>.
+	/// Distributed through the patcher's Entry.txt like any other game file.
+	/// </summary>
+	public const string SkinFolder = "Skins";
+
+	/// <summary>Absolute path of a skin file, for logging and for the patcher's manifest.</summary>
+	public static string SkinPath(string fileName)
 	{
-		Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
-		if (stream == null)
+		// Application.dataPath is "<install>/UberStrike_Data" for a Windows player.
+		return Path.Combine(Path.Combine(Application.dataPath, SkinFolder), fileName);
+	}
+
+	/// <summary>
+	/// Load a skin texture from disk.
+	///
+	/// These used to be EmbeddedResources compiled into this assembly, which took
+	/// Assembly-CSharp.dll from 1.4 MB to 51 MB - 97 percent of the file was PNG. Nothing
+	/// else in UberStrike ships that way: the game has 1,228 textures and 1.4 GB of art,
+	/// none of it in a managed assembly. Loading from disk puts the assembly back to its
+	/// normal size and lets the patcher update art without re-shipping code, and vice versa.
+	///
+	/// Texture2D.LoadImage handles PNG and JPEG on this client (Unity 4.6.5), and produces
+	/// a texture with mipmaps disabled, matching the previous embedded behaviour exactly.
+	/// </summary>
+	private static Texture2D LoadFromDisk(string fileName)
+	{
+		string path = SkinPath(fileName);
+		if (!File.Exists(path))
 		{
-			Debug.LogError("WeaponSkinHelper: embedded resource not found: " + resourceName);
+			Debug.LogError("WeaponSkinHelper: skin file not found: " + path);
 			return null;
 		}
 
 		byte[] data;
-		using (stream)
+		try
 		{
-			data = new byte[stream.Length];
-			int total = 0;
-			while (total < data.Length)
-			{
-				int read = stream.Read(data, total, data.Length - total);
-				if (read <= 0) break;
-				total += read;
-			}
+			data = File.ReadAllBytes(path);
+		}
+		catch (Exception e)
+		{
+			Debug.LogError("WeaponSkinHelper: could not read " + path + ": " + e.Message);
+			return null;
 		}
 
 		Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
 		if (!tex.LoadImage(data))
 		{
-			Debug.LogError("WeaponSkinHelper: Texture2D.LoadImage failed for " + resourceName);
+			Debug.LogError("WeaponSkinHelper: Texture2D.LoadImage failed for " + path);
 			return null;
 		}
 		return tex;
@@ -137,7 +159,7 @@ public static class WeaponSkinHelper
 		if (!SkinTextures.TryGetValue(itemId, out resourceName))
 			return null; // not one of our skins (or parked, e.g. 9008)
 
-		Texture2D tex = LoadEmbedded(resourceName);
+		Texture2D tex = LoadFromDisk(resourceName);
 		if (tex != null)
 			_skinCache[itemId] = tex;
 		return tex;
@@ -153,7 +175,7 @@ public static class WeaponSkinHelper
 		if (!IconTextures.TryGetValue(itemId, out resourceName))
 			return null;
 
-		Texture2D tex = LoadEmbedded(resourceName);
+		Texture2D tex = LoadFromDisk(resourceName);
 		if (tex != null)
 			_iconCache[itemId] = tex;
 		return tex;

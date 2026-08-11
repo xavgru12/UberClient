@@ -795,46 +795,5 @@
       <Name>Assembly-CSharp-firstpass</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="WeaponSkins\9007_PlasmaBat.png">
-      <LogicalName>9007_PlasmaBat.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9009_CryoStrike.png">
-      <LogicalName>9009_CryoStrike.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9010_SolarCannon.png">
-      <LogicalName>9010_SolarCannon.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9011_ToxicSplatter.png">
-      <LogicalName>9011_ToxicSplatter.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9012_VoidAmethyst.png">
-      <LogicalName>9012_VoidAmethyst.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9013_Bloodhound.png">
-      <LogicalName>9013_Bloodhound.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9014_AbyssalLeviathan.png">
-      <LogicalName>9014_AbyssalLeviathan.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9015_NeonCircuit.png">
-      <LogicalName>9015_NeonCircuit.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9007_PlasmaBat_Icon.png">
-      <LogicalName>9007_PlasmaBat_Icon.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9008_InfernoMG_Icon.png">
-      <LogicalName>9008_InfernoMG_Icon.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9009_CryoStrike_Icon.png">
-      <LogicalName>9009_CryoStrike_Icon.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9010_SolarCannon_Icon.png">
-      <LogicalName>9010_SolarCannon_Icon.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9011_ToxicSplatter_Icon.png">
-      <LogicalName>9011_ToxicSplatter_Icon.png</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
