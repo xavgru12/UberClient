@@ -76,6 +76,16 @@ public static class WeaponSkinHelper
 		{ 9016, "9016_CrimsonDragon.png" },
 	};
 
+	// Shop icons. ProxyItem loads the BASE weapon's "<prefabPath>-Icon" from Resources and we
+	// replace it by item id, so an id missing here silently shows the base weapon's icon --
+	// or nothing, since the five stock weapons (TheSplatbat, MachineGun, SniperRifle, Cannon,
+	// ShotGun) ship no icon at all and fall back to a per-class default.
+	//
+	// All ten are rendered by tools/render_weapon_icon.py in uberstrike-patcher-workshop, to
+	// the convention measured off the 133 stock 48x48 shop icons rather than to taste:
+	// 48x48 opaque RGBA on the recovered plate, weapon bbox 0.923 of the width, centroid at
+	// (0.533, 0.459), long axis near horizontal, and the muzzle pointing LEFT, which 115 of
+	// 115 unambiguously directional stock icons do.
 	public static readonly Dictionary<int, string> IconTextures = new Dictionary<int, string>
 	{
 		{ 9007, "9007_PlasmaBat_Icon.png" },
@@ -83,6 +93,11 @@ public static class WeaponSkinHelper
 		{ 9009, "9009_CryoStrike_Icon.png" },
 		{ 9010, "9010_SolarCannon_Icon.png" },
 		{ 9011, "9011_ToxicSplatter_Icon.png" },
+		{ 9012, "9012_VoidAmethyst_Icon.png" },
+		{ 9013, "9013_Bloodhound_Icon.png" },
+		{ 9014, "9014_AbyssalLeviathan_Icon.png" },
+		{ 9015, "9015_NeonCircuit_Icon.png" },
+		{ 9016, "9016_CrimsonDragon_Icon.png" },
 	};
 
 	// Optional per item tracer: gives a weapon a travelling muzzle to hitpoint beam it
