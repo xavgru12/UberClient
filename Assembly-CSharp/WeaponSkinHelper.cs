@@ -14,6 +14,7 @@
 //   9009 Cryo Strike    (base 1004 PaintSniper)
 //   9010 Solar Cannon   (base 1005 Cannon)
 //   9011 Toxic Splatter (base 1003 PaintShotty)
+//   9016 Crimson Dragon (base 6  MythicEdge-DE, premium melee)
 //
 // This does NOT check ownership/equip state beyond what the game itself already enforces
 // via AssignWeapon (only ever called with an item the player has equipped in their
@@ -53,6 +54,26 @@ public static class WeaponSkinHelper
 		// correctly (0.4% to 4.4%). 9008 above is the same fix applied to the other
 		// MachineGun skin, so both are now live.
 		{ 9015, "9015_NeonCircuit.png" },
+		// 2026-08-11. First two skins on PREMIUM base weapons rather than the five stock
+		// ones. These live in Resources/items/weapons/<slug>/res/ with their own material
+		// and prefab, so unlike the others their base texture is not in Texture2D/.
+		//
+		// 9016 Crimson Dragon is the Mythic Edge katana (base item 6, prefab MythicEdge-DE).
+		// Its base is 512x1024, not square, and the generator only emits squares: asking it
+		// directly made it re-lay-out the UV islands to fill the canvas. Fixed by padding
+		// the base into a square before generation and cropping the padding back off, which
+		// leaves every island on its original pixel. Measures 10.7% unpainted against the
+		// base's own 10.7% floor.
+		//
+		//
+		// An AWP skin was built and withdrawn the same day. It measured well (3.6-7.3%
+		// unpainted against that base's 22.4% floor) but never resembled the concept art it
+		// was chasing, and the reason turned out to be structural rather than fixable: that
+		// concept is a separate 1.5M-triangle PBR asset with its own UV layout and
+		// metallic/roughness maps, not a texture for this rifle at all. No reskin of
+		// AWP_Roughed can reach it. Doing so needs the mesh decimated, baked down to
+		// diffuse+normal, and shipped in an AssetBundle -- a custom mesh, not a re-texture.
+		{ 9016, "9016_CrimsonDragon.png" },
 	};
 
 	public static readonly Dictionary<int, string> IconTextures = new Dictionary<int, string>
