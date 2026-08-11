@@ -159,13 +159,24 @@ public static class WeaponSkinHelper
 				return colour;
 			}
 
+			// Texture2D.LoadImage REPLACES the texture format to match the file it read.
+			// A JPEG has no alpha, so `colour` comes back as RGB24 and writing alpha into
+			// it is silently discarded on Apply. The mask has to go into a texture that
+			// actually has an alpha channel, so allocate a fresh RGBA32 one.
+			//
+			// This is not cosmetic. ApplyToWeapon assigns the skin to every Renderer under
+			// the weapon, which includes the muzzle flash quad. That quad is alpha blended,
+			// so a mask of mostly zero alpha leaves it invisible as intended, while a fully
+			// opaque texture turns it into a visible square. Losing the alpha here shows up
+			// on the flash long before it is noticeable on the gun body.
+			Texture2D merged = new Texture2D(colour.width, colour.height, TextureFormat.RGBA32, false);
 			Color[] rgb = colour.GetPixels();
 			Color[] a = maskTex.GetPixels();
 			for (int i = 0; i < rgb.Length; i++)
 				rgb[i].a = a[i].r; // greyscale mask: any channel carries the value
-			colour.SetPixels(rgb);
-			colour.Apply(false);
-			return colour;
+			merged.SetPixels(rgb);
+			merged.Apply(false);
+			return merged;
 		}
 
 		return LoadImageFile(SkinPath(fileName));
