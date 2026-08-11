@@ -45,11 +45,12 @@ if errorlevel 1 (
 )
 echo Copy complete.
 
-cd /d "%UBERUPDATES%"
+pushd "%UBERUPDATES%"
 echo Running bin.exe...
 "%UBERUPDATES%\bin.exe"
-if errorlevel 1 exit /b 7
+if errorlevel 1 popd & exit /b 7
 echo Running create_zip.py...
 python "%UBERUPDATES%\create_zip.py"
-if errorlevel 1 exit /b 8
+if errorlevel 1 popd & exit /b 8
+popd
 exit /b 0
