@@ -16,4 +16,12 @@ exit /b 3
 
 :parsed
 call "%SCRIPT_DIR%deploy-base.cmd" "%SCRIPT_DIR%Assembly-CSharp\bin\Release" "%UBERUPDATES%\Windows\UberStrike_Data\Managed"
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+cd /d "%UBERUPDATES%"
+echo Running bin.exe...
+"%UBERUPDATES%\bin.exe"
+if errorlevel 1 exit /b %ERRORLEVEL%
+echo Running create_zip.py...
+python "%UBERUPDATES%\create_zip.py"
 exit /b %ERRORLEVEL%
