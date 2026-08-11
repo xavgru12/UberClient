@@ -10,7 +10,7 @@
 //
 // Item ID -> base weapon mapping (from unity_2022_tg/skin-framework commit 850893ee):
 //   9007 Plasma Bat     (base 1000 TheSplatbat)
-//   9008 Inferno MG     (base 1002 MachineGun)  -- texture PARKED, see SkinTextures below
+//   9008 Inferno MG     (base 1002 MachineGun)
 //   9009 Cryo Strike    (base 1004 PaintSniper)
 //   9010 Solar Cannon   (base 1005 Cannon)
 //   9011 Toxic Splatter (base 1003 PaintShotty)
@@ -31,10 +31,11 @@ public static class WeaponSkinHelper
 	public static readonly Dictionary<int, string> SkinTextures = new Dictionary<int, string>
 	{
 		{ 9007, "9007_PlasmaBat.png" },
-		// 9008 Inferno MG parked: texture appears rotated on the real Steam client's
-		// MachineGun mesh UVs. Needs a proper Unity Editor side-by-side comparison
-		// against the 4.3.8 reference to fix correctly. 9008 still equips fine, just
-		// shows the unskinned base MachineGun until this is revisited.
+		// 9008 repainted 2026-08-11 against the 4.7.1 MachineGun base, same as 9015.
+		// It was parked on the theory that the texture was rotated on this client's mesh;
+		// that was wrong. The real cause was the UV layout, see the 9015 note below.
+		// Measures 4.1% unpainted at brightness 153.0.
+		{ 9008, "9008_InfernoMG.png" },
 		{ 9009, "9009_CryoStrike.png" },
 		{ 9010, "9010_SolarCannon.png" },
 		{ 9011, "9011_ToxicSplatter.png" },
@@ -49,8 +50,8 @@ public static class WeaponSkinHelper
 		// authored on the 4.3.8 texture, whose UV layout uses 47% of the sheet against
 		// 4.7.1's 87%, so it left ~37% of the mesh unpainted and rendered black in patches.
 		// The repaint measures 5.1% unpainted, in line with every skin that renders
-		// correctly (0.4% to 4.4%). 9008 Inferno MG is still parked for the same original
-		// reason and needs the same repaint.
+		// correctly (0.4% to 4.4%). 9008 above is the same fix applied to the other
+		// MachineGun skin, so both are now live.
 		{ 9015, "9015_NeonCircuit.png" },
 	};
 
@@ -217,7 +218,7 @@ public static class WeaponSkinHelper
 
 		string resourceName;
 		if (!SkinTextures.TryGetValue(itemId, out resourceName))
-			return null; // not one of our skins (or parked, e.g. 9008)
+			return null; // not one of our skins
 
 		Texture2D tex = LoadFromDisk(resourceName);
 		if (tex != null)
