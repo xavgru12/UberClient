@@ -7,15 +7,18 @@ example with IP 13.38.94.69:
 
 ApplicationDataManager.WebServiceBaseUrl = "http://13.38.94.69:5000/2.0/";    
 ApplicationDataManager.ImagePath = "http://13.38.94.69:5000/images/";     
-			
-Take the Release, which is the folder UberStrike_Data and replace it in UberStrike steam installation:     
-C:\Program Files (x86)\Steam\steamapps\common\UberStrike    
-Complete modified UberStrike client is added as well.
 
 ## Using the Client
 The client compiled successfully, so now what?!
 
-Use it locally by copzing to local UberStrike steam installation
+Manual way:
+Take the Release, which is the folder UberStrike_Data and replace it in UberStrike steam installation:     
+C:\Program Files (x86)\Steam\steamapps\common\UberStrike    
+Complete modified UberStrike client is added as well.
+
+Automatic way:
+
+Use it locally by copying to local UberStrike steam installation
 ```
 copyToLocalUberStrikeInstallation.cmd
 ```
