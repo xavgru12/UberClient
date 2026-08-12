@@ -347,11 +347,24 @@ public static class WeaponSkinHelper
 				continue;
 
 			r.material.shader = s;
-			if (i > 0)
-			{
-				Debug.Log("WeaponSkinHelper: skin " + itemId + " fell back to shader '"
-					+ candidates[i] + "' ('" + candidates[0] + "' is not in this build)");
-			}
+
+			// Glass-Hangar adds a cubemap reflection on top of the albedo:
+			//
+			//     reflcol  = texCUBE(_Cube, worldRefl) * _ReflectColor
+			//     o.Albedo = c.rgb + reflcol.rgb * reflcol.a
+			//
+			// We only swap the shader, so _Cube is never assigned and samples WHITE, while
+			// _ReflectColor defaults to (1,1,1,0.5). That adds a flat +0.5 white to every
+			// pixel and washes the blade out to a featureless pale slab -- which is exactly
+			// what it did in game, with all the ice detail gone.
+			//
+			// With no cubemap to reflect there is nothing meaningful for this term to say, so
+			// it is turned down to a faint cool tint instead of being left at its default.
+			if (r.material.HasProperty("_ReflectColor"))
+				r.material.SetColor("_ReflectColor", new Color(0.55f, 0.75f, 0.95f, 0.08f));
+
+			Debug.Log("WeaponSkinHelper: skin " + itemId + " bound shader '" + candidates[i] + "'"
+				+ (i > 0 ? " (fell back; '" + candidates[0] + "' is not in this build)" : ""));
 			return;
 		}
 
@@ -416,8 +429,13 @@ public static class WeaponSkinHelper
 			go.transform.parent = mf.transform;
 			go.transform.localPosition = Vector3.zero;
 			go.transform.localRotation = Quaternion.identity;
-			// A hair larger so it never z-fights with the surface it sits on.
-			go.transform.localScale = new Vector3(1.015f, 1.015f, 1.015f);
+			// Scale stays at ONE. An earlier version used 1.015 "so it never z-fights", which
+			// was wrong twice over: Particles/Additive already has ZWrite Off so there is no
+			// depth fight to lose, and scaling happens about this transform's PIVOT, not the
+			// mesh centroid. The katana's geometry sits well off its pivot, so 1.5% became a
+			// visible translation and the overlay read as a second, ghostly blade beside the
+			// real one.
+			go.transform.localScale = Vector3.one;
 
 			MeshFilter of = go.AddComponent<MeshFilter>();
 			of.sharedMesh = mf.sharedMesh;
@@ -427,11 +445,17 @@ public static class WeaponSkinHelper
 			m.mainTexture = flame;
 			if (m.HasProperty("_TintColor"))
 			{
-				// Particles/Additive multiplies by _TintColor, so this is the intensity dial.
-				// Held back deliberately: the sheet is 30% coverage at full white, and at
-				// full tint it washes the ice out to a flat glare.
-				m.SetColor("_TintColor", new Color(0.42f, 0.62f, 0.78f, 0.5f));
+				// Particles/Additive computes 2.0 * vertexColour * _TintColor * texture, and a
+				// MeshRenderer has no vertex colours so that term is white. The factor of TWO
+				// is the part worth remembering: a tint of 0.42/0.62/0.78 is not "60% strength",
+				// it peaks at 0.84/1.24/1.56 and clips -- brighter than the blade underneath.
+				m.SetColor("_TintColor", new Color(0.10f, 0.16f, 0.22f, 0.5f));
 			}
+			// Tile the sheet ALONG the blade. The overlay samples with the weapon's own UVs,
+			// where the blade is one long thin island, so at 1x tiling a single flame tongue
+			// is stretched over the entire length and reads as a wash rather than as fire.
+			// Repeating it down the island gives distinct tongues travelling up the blade.
+			m.SetTextureScale("_MainTex", new Vector2(1f, 4f));
 			m.renderQueue = 3100;               // after the glass at 3000
 			or.material = m;
 			or.castShadows = false;
