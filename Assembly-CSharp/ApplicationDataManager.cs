@@ -108,17 +108,15 @@ public static class ApplicationDataManager
 #endif
         if (!IsDebug)
         {
-            WebServiceBaseUrl = "127.0.0.1/2.0/";
-            ImagePath = "127.0.0.1/images/";
-            Version = "4.8.6";
+            WebServiceBaseUrl = "steam.uberstrike.com/2.0/";
+            ImagePath = "steam.uberstrike.com/images/";
         }
         else
         {
             WebServiceBaseUrl = "127.0.0.1/2.0/";
             ImagePath = "127.0.0.1/images/";
-            Version = "4.8.6";
         }
-        Version = "4.8.6";
+        Version = "4.8.11";
         IsMac = (Application.platform == RuntimePlatform.OSXPlayer);
 		applicationDateTime = 0f;
 		serverDateTime = DateTime.Now;
