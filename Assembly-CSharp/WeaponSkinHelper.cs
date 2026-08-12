@@ -91,6 +91,26 @@ public static class WeaponSkinHelper
 		// blade at 8.5% of the sheet under alpha 0.55 while 85% stays solid, which is what
 		// keeps the grip looking held rather than ghostly.
 		{ 9017, "9017_Frostbound.png" },
+		// 2026-08-12. Same glass sword as 9017, deliberately sharing its texture files rather
+		// than duplicating them -- the two skins differ only in HOW the fire moves, so two
+		// copies of the same art would only be two things to keep in sync. What differs is the
+		// flame mode below, the catalog name, and the icon.
+		{ 9018, "9017_Frostbound.png" },
+	};
+
+	/// <summary>
+	/// How a skin's flame overlay is built.
+	///
+	/// Surface was the original concept: a copy of the weapon's own mesh drawn additively over
+	/// it, so the fire sits ON the steel. Helix builds a separate sleeve of ribbons standing
+	/// off the blade and winding along it, so the fire orbits OUTSIDE the sword.
+	/// </summary>
+	public enum FlameMode { Surface, Helix }
+
+	public static readonly Dictionary<int, FlameMode> SkinFlameModes = new Dictionary<int, FlameMode>
+	{
+		{ 9017, FlameMode.Helix },
+		{ 9018, FlameMode.Surface },
 	};
 
 	/// <summary>
@@ -114,6 +134,7 @@ public static class WeaponSkinHelper
 	public static readonly Dictionary<int, string[]> SkinShaders = new Dictionary<int, string[]>
 	{
 		{ 9017, new string[] { "Unique/Transparent/Glass-Hangar", "Transparent/Diffuse" } },
+		{ 9018, new string[] { "Unique/Transparent/Glass-Hangar", "Transparent/Diffuse" } },
 	};
 
 	/// <summary>
@@ -128,6 +149,7 @@ public static class WeaponSkinHelper
 	public static readonly Dictionary<int, string> SkinFlames = new Dictionary<int, string>
 	{
 		{ 9017, "9017_Frostbound_Flames.png" },
+		{ 9018, "9017_Frostbound_Flames.png" },
 	};
 
 	// Shop icons. ProxyItem loads the BASE weapon's "<prefabPath>-Icon" from Resources and we
@@ -153,6 +175,7 @@ public static class WeaponSkinHelper
 		{ 9015, "9015_NeonCircuit_Icon.png" },
 		{ 9016, "9016_CrimsonDragon_Icon.png" },
 		{ 9017, "9017_Frostbound_Icon.png" },
+		{ 9018, "9018_Frostfire_Icon.png" },
 	};
 
 	// Optional per item tracer: gives a weapon a travelling muzzle to hitpoint beam it
@@ -213,7 +236,68 @@ public static class WeaponSkinHelper
 	/// </summary>
 	private static Texture2D LoadFromDisk(string fileName)
 	{
-		string path = SkinPath(fileName);
+		// Preferred layout: colour as JPEG, specular mask as a separate lossless PNG.
+		//
+		// A 2048 skin is 5.8-7.3 MB as RGBA PNG because PNG is lossless and this art is
+		// dense AI-generated detail with little to compress. The same colour at JPEG q92
+		// (chroma subsampling OFF - 4:2:0 would smear the colour and is exactly what
+		// wrecks textures) measures 41.9-45.2 dB PSNR against the original, roughly 1%
+		// average per-channel error, for 5.4-7.5x less data.
+		//
+		// The alpha channel is NOT compressed. It carries the specular mask composited
+		// from the base weapon, which is what makes these read as metal rather than flat
+		// paint, so it stays bit-for-bit lossless in its own greyscale PNG.
+		//
+		// Falls back to a single RGBA PNG when no pair is present, so both layouts work
+		// and a skin can be switched over one at a time.
+		string stem = Path.GetFileNameWithoutExtension(fileName);
+		string jpeg = SkinPath(stem + ".jpg");
+		string mask = SkinPath(stem + ".alpha.png");
+
+		if (File.Exists(jpeg))
+		{
+			Texture2D colour = LoadImageFile(jpeg);
+			if (colour == null)
+				return null;
+			if (!File.Exists(mask))
+				return colour; // colour-only skin, e.g. one with no specular mask
+
+			Texture2D maskTex = LoadImageFile(mask);
+			if (maskTex == null)
+				return colour;
+
+			if (maskTex.width != colour.width || maskTex.height != colour.height)
+			{
+				Debug.LogError("WeaponSkinHelper: alpha mask size " + maskTex.width + "x" + maskTex.height
+					+ " does not match colour " + colour.width + "x" + colour.height + " for " + stem);
+				return colour;
+			}
+
+			// Texture2D.LoadImage REPLACES the texture format to match the file it read.
+			// A JPEG has no alpha, so `colour` comes back as RGB24 and writing alpha into
+			// it is silently discarded on Apply. The mask has to go into a texture that
+			// actually has an alpha channel, so allocate a fresh RGBA32 one.
+			//
+			// This is not cosmetic. ApplyToWeapon assigns the skin to every Renderer under
+			// the weapon, which includes the muzzle flash quad. That quad is alpha blended,
+			// so a mask of mostly zero alpha leaves it invisible as intended, while a fully
+			// opaque texture turns it into a visible square. Losing the alpha here shows up
+			// on the flash long before it is noticeable on the gun body.
+			Texture2D merged = new Texture2D(colour.width, colour.height, TextureFormat.RGBA32, false);
+			Color[] rgb = colour.GetPixels();
+			Color[] a = maskTex.GetPixels();
+			for (int i = 0; i < rgb.Length; i++)
+				rgb[i].a = a[i].r; // greyscale mask: any channel carries the value
+			merged.SetPixels(rgb);
+			merged.Apply(false);
+			return merged;
+		}
+
+		return LoadImageFile(SkinPath(fileName));
+	}
+
+	private static Texture2D LoadImageFile(string path)
+	{
 		if (!File.Exists(path))
 		{
 			Debug.LogError("WeaponSkinHelper: skin file not found: " + path);
@@ -441,8 +525,31 @@ public static class WeaponSkinHelper
 			// to scale, tint and vertex colours because none of them were the cause.
 			go.layer = mf.gameObject.layer;
 
+			// The overlay is a SLEEVE around the blade, not a copy of the blade. Copying the
+			// weapon mesh paints fire onto the surface; a sleeve is separate geometry standing
+			// off the steel, so the flames can orbit the sword in the air around it.
+			FlameMode mode;
+			if (!SkinFlameModes.TryGetValue(itemId, out mode))
+				mode = FlameMode.Helix;
+
+			Vector3 axis = Vector3.up, centre = Vector3.zero;
+			Mesh overlayMesh;
+			if (mode == FlameMode.Surface)
+			{
+				// the original concept: fire painted onto the weapon's own geometry
+				overlayMesh = WhiteVertexCopy(mf.sharedMesh);
+			}
+			else
+			{
+				overlayMesh = BuildFlameSleeve(mf.sharedMesh, out axis, out centre);
+			}
+			if (overlayMesh == null)
+				continue;
+
 			go.transform.parent = mf.transform;
-			go.transform.localPosition = Vector3.zero;
+			// Vertices are authored in the weapon's own local space now that the sleeve bends
+			// with the blade, so the child sits at the origin and never needs moving.
+			go.transform.localPosition = centre;   // Vector3.zero from BuildFlameSleeve
 			go.transform.localRotation = Quaternion.identity;
 			// Scale stays at ONE. An earlier version used 1.015 "so it never z-fights", which
 			// was wrong twice over: Particles/Additive already has ZWrite Off so there is no
@@ -453,7 +560,7 @@ public static class WeaponSkinHelper
 			go.transform.localScale = Vector3.one;
 
 			MeshFilter of = go.AddComponent<MeshFilter>();
-			of.sharedMesh = WhiteVertexCopy(mf.sharedMesh);
+			of.sharedMesh = overlayMesh;
 
 			MeshRenderer or = go.AddComponent<MeshRenderer>();
 			Material m = new Material(additive);
@@ -464,29 +571,263 @@ public static class WeaponSkinHelper
 				// MeshRenderer has no vertex colours so that term is white. The factor of TWO
 				// is the part worth remembering: a tint of 0.42/0.62/0.78 is not "60% strength",
 				// it peaks at 0.84/1.24/1.56 and clips -- brighter than the blade underneath.
-				// With white vertex colours the arithmetic is finally predictable:
-				// 2 * 1 * tint * tex, blended SrcAlpha One, so a white flame texel adds
-				// (0.36, 0.52, 0.64) at the peak -- clearly visible as a cool white glow
-				// without pushing the blade to clip.
-				m.SetColor("_TintColor", new Color(0.18f, 0.26f, 0.32f, 0.5f));
+				// Particles/Additive computes 2 * vertexColour * tint * texture, so the peak
+				// add is twice these numbers. Deliberately split by MODE rather than shared:
+				// the helix is two narrow ribbons covering very little of the frame, so it can
+				// run hot and read as white-hot fire, while Surface paints the whole weapon and
+				// the same value there would wash the ice out to a flat glare.
+				m.SetColor("_TintColor", mode == FlameMode.Surface
+					? new Color(0.18f, 0.26f, 0.32f, 0.5f)   // peak add 0.36 / 0.52 / 0.64
+					: new Color(0.40f, 0.47f, 0.52f, 0.5f)); // peak add 0.80 / 0.94 / 1.04
 			}
 			// Tile the sheet ALONG the blade. The overlay samples with the weapon's own UVs,
 			// where the blade is one long thin island, so at 1x tiling a single flame tongue
 			// is stretched over the entire length and reads as a wash rather than as fire.
 			// Repeating it down the island gives distinct tongues travelling up the blade.
-			m.SetTextureScale("_MainTex", new Vector2(1f, 4f));
+			// On the sleeve, U runs AROUND the circumference and V runs ALONG the blade, so
+			// these two numbers mean something different than they did on the mesh copy:
+			// 2 flame columns around the sword, repeating 3 times down its length.
+			m.SetTextureScale("_MainTex", mode == FlameMode.Surface
+				? new Vector2(1f, 4f)      // across the weapon UVs, as the original did
+				: new Vector2(1f, 2f));    // one band per ribbon, repeating along it
 			m.renderQueue = 3100;               // after the glass at 3000
 			or.material = m;
 			or.castShadows = false;
 			or.receiveShadows = false;
 
-			go.AddComponent<WeaponFlameAnimator>();
+			WeaponFlameAnimator anim = go.AddComponent<WeaponFlameAnimator>();
+			anim.SpinAxis = axis;
 		}
 	}
 
 	private const string FlameChildName = "__SkinFlameOverlay";
 
 	private static readonly Dictionary<Mesh, Mesh> _flameMeshCache = new Dictionary<Mesh, Mesh>();
+	private static readonly Dictionary<Mesh, Mesh> _sleeveCache = new Dictionary<Mesh, Mesh>();
+	private static readonly Dictionary<Mesh, Vector3> _sleeveAxis = new Dictionary<Mesh, Vector3>();
+	private static readonly Dictionary<Mesh, Vector3> _sleeveCentre = new Dictionary<Mesh, Vector3>();
+
+	// Sleeve shape. Rings along the blade, segments around it.
+	private const int SLEEVE_RINGS = 22;
+	private const int SLEEVE_RIBBONS = 2;          // two flame strands
+	private const int SLEEVE_ARC_SEGMENTS = 5;     // quads across one strand
+	private const float SLEEVE_RIBBON_ARC = 0.5f;  // radians of arc each strand covers
+	// How far out the flames stand off the steel, as a multiple of the blade's own half
+	// THICKNESS -- the thinner cross-axis, not the thicker one. A katana is curved, so its
+	// bounding box in the curve plane measures the bend (0.157 on this mesh), not the steel.
+	// Sizing off that gave a sleeve 61% as wide as it was long: a spinning umbrella.
+	private const float SLEEVE_RADIUS_MULT = 2.0f;
+	// Belt and braces on the above: whatever the cross-section says, keep the envelope inside
+	// a sane fraction of the blade's LENGTH, which is the measurement that cannot be fooled
+	// by curvature or by a stray vertex.
+	private const float SLEEVE_MIN_LEN_FRAC = 0.025f;
+	private const float SLEEVE_MAX_LEN_FRAC = 0.042f;
+	// How much the envelope narrows at the TIP only. The reference art is a flame helix that
+	// hugs the blade for its whole length and closes at the point -- not an hourglass. An
+	// earlier version pinched the waist and flared both ends, which read as a bowtie and
+	// pushed fire out past the tip.
+	private const float SLEEVE_TIP_SCALE = 0.55f;
+	// Turns of twist from guard to tip. This is what makes it a HELIX rather than a tube with
+	// a pattern on it, so it is the single most important number for matching the reference.
+	private const float SLEEVE_TWIST_TURNS = 2.1f;
+	// Where the sleeve starts along the weapon, as a fraction from butt to tip. The katana's
+	// grip is roughly the first third and a player's hand is there, so fire wrapping it looks
+	// wrong; the flames begin above the guard.
+	private const float SLEEVE_START = 0.30f;
+
+	/// <summary>
+	/// Build a cylindrical shell standing off the blade, for flames that ORBIT the sword
+	/// rather than being painted on it.
+	///
+	/// Everything is derived from the mesh's own bounds rather than hardcoded, so this works
+	/// on any weapon we later point it at:
+	///
+	///   * the blade axis is simply the LONGEST of the three bounds extents
+	///   * the radius comes from the other two, so a thick weapon gets a wider sleeve
+	///   * the grip end is the one nearer the weapon's local origin, because
+	///     Avatar.AssignWeapon parents the weapon to the attach point and then zeroes its
+	///     local position -- so the hand sits at approximately zero and the blade extends away
+	///
+	/// UVs are laid out U-around, V-along, which is what lets the flame sheet's vertical
+	/// tongues run down the length of the blade while the mesh spins about it.
+	/// </summary>
+	private static Mesh BuildFlameSleeve(Mesh source, out Vector3 axis, out Vector3 centre)
+	{
+		axis = Vector3.up;
+		centre = Vector3.zero;
+		if (source == null)
+			return null;
+
+		Mesh cached;
+		if (_sleeveCache.TryGetValue(source, out cached) && cached != null)
+		{
+			axis = _sleeveAxis[source];
+			centre = _sleeveCentre[source];
+			return cached;
+		}
+
+		Bounds b = source.bounds;
+		Vector3 size = b.size;
+
+		int ai = 0;
+		if (size.y > size.x) ai = 1;
+		if (size.z > size[ai]) ai = 2;
+		axis = ai == 0 ? Vector3.right : (ai == 1 ? Vector3.up : Vector3.forward);
+
+		// the two axes perpendicular to the blade
+		Vector3 pu = ai == 0 ? Vector3.up : Vector3.right;
+		Vector3 pv = ai == 2 ? Vector3.up : Vector3.forward;
+
+		float halfLen = size[ai] * 0.5f;
+		if (halfLen <= 1e-5f)
+			return null;
+
+		// MIN, not max: on a curved blade the wider cross-axis is the bend, not the steel.
+		float thin = Mathf.Min(size[(ai + 1) % 3], size[(ai + 2) % 3]) * 0.5f;
+		float len = halfLen * 2f;
+		float radius = Mathf.Clamp(thin * SLEEVE_RADIUS_MULT,
+			len * SLEEVE_MIN_LEN_FRAC, len * SLEEVE_MAX_LEN_FRAC);
+
+		// Which way the blade points from the hand.
+		float sign = b.center[ai] >= 0f ? 1f : -1f;
+		float butt = b.center[ai] - sign * halfLen;
+		float tip = b.center[ai] + sign * halfLen;
+		float start = Mathf.Lerp(butt, tip, SLEEVE_START);
+		float end = tip;
+
+		Vector3 b_centre = b.center;
+		centre = b.center;
+		centre[ai] = (start + end) * 0.5f;
+
+		// FOLLOW THE BLADE'S CURVE. A single centre cannot work here, and that is measured:
+		// across the sleeve's span this katana sweeps 0.126 in X as it rises, against a flame
+		// radius of 0.045. So even a perfect average leaves the sleeve nearly three flame-widths
+		// off the steel at the ends -- strands running parallel to the blade but beside it,
+		// which is exactly what centring on the bounding box, and then on the vertex mean,
+		// both produced.
+		//
+		// Instead bin the vertices by height and take each slice's own centre, giving a
+		// centreline that bends with the blade. Falls back to a straight line down the bounding
+		// box if the mesh is not readable.
+		Vector3[] ring = new Vector3[SLEEVE_RINGS];
+		{
+			Vector3[] sv = null;
+			try { sv = source.vertices; } catch { sv = null; }
+			double[] su = new double[SLEEVE_RINGS];
+			double[] sw = new double[SLEEVE_RINGS];
+			int[] cnt = new int[SLEEVE_RINGS];
+			float lo = Mathf.Min(start, end), hi = Mathf.Max(start, end);
+			if (sv != null && sv.Length > 0 && hi > lo)
+			{
+				for (int q = 0; q < sv.Length; q++)
+				{
+					float p = sv[q][ai];
+					if (p < lo || p > hi)
+						continue;
+					int bin = Mathf.Clamp((int)((p - lo) / (hi - lo) * (SLEEVE_RINGS - 1) + 0.5f),
+						0, SLEEVE_RINGS - 1);
+					su[bin] += Vector3.Dot(sv[q], pu);
+					sw[bin] += Vector3.Dot(sv[q], pv);
+					cnt[bin]++;
+				}
+			}
+			// fill each ring, carrying the last known slice through any empty bin
+			float lastU = Vector3.Dot(b_centre, pu), lastV = Vector3.Dot(b_centre, pv);
+			for (int r = 0; r < SLEEVE_RINGS; r++)
+			{
+				if (cnt[r] > 2)
+				{
+					lastU = (float)(su[r] / cnt[r]);
+					lastV = (float)(sw[r] / cnt[r]);
+				}
+				ring[r] = pu * lastU + pv * lastV;
+			}
+			// one smoothing pass, so a thin slice cannot kink the centreline
+			Vector3[] sm = new Vector3[SLEEVE_RINGS];
+			for (int r = 0; r < SLEEVE_RINGS; r++)
+			{
+				Vector3 acc = ring[r] * 2f;
+				float wsum = 2f;
+				if (r > 0) { acc += ring[r - 1]; wsum += 1f; }
+				if (r < SLEEVE_RINGS - 1) { acc += ring[r + 1]; wsum += 1f; }
+				sm[r] = acc / wsum;
+			}
+			ring = sm;
+		}
+
+		// The sleeve now bends, so it can no longer be spun as a rigid body about the axis --
+		// that would swing the curve away from the blade. Motion comes from the texture
+		// travelling ALONG the helix instead, which reads as flame winding around the sword.
+		centre = Vector3.zero;
+
+		int across = SLEEVE_ARC_SEGMENTS + 1;
+		int perRibbon = SLEEVE_RINGS * across;
+		int nv = perRibbon * SLEEVE_RIBBONS;
+		Vector3[] verts = new Vector3[nv];
+		Vector2[] uvs = new Vector2[nv];
+		Color[] cols = new Color[nv];
+
+		for (int rib = 0; rib < SLEEVE_RIBBONS; rib++)
+		{
+			float phase = (float)rib / SLEEVE_RIBBONS * Mathf.PI * 2f;
+			for (int r = 0; r < SLEEVE_RINGS; r++)
+			{
+				float t = (float)r / (SLEEVE_RINGS - 1);
+				float along = Mathf.Lerp(start, end, t);
+				float profile = Mathf.Lerp(1f, SLEEVE_TIP_SCALE, Mathf.Pow(t, 2.5f));
+				float twist = SLEEVE_TWIST_TURNS * Mathf.PI * 2f * t + phase;
+				for (int s = 0; s < across; s++)
+				{
+					float w = (float)s / SLEEVE_ARC_SEGMENTS - 0.5f;
+					float ang = twist + w * SLEEVE_RIBBON_ARC;
+					int idx = rib * perRibbon + r * across + s;
+					verts[idx] = axis * along + ring[r]
+						+ pu * (Mathf.Cos(ang) * radius * profile)
+						+ pv * (Mathf.Sin(ang) * radius * profile);
+					uvs[idx] = new Vector2((float)s / SLEEVE_ARC_SEGMENTS, t);
+					cols[idx] = Color.white;
+				}
+			}
+		}
+
+		int[] tris = new int[SLEEVE_RIBBONS * (SLEEVE_RINGS - 1) * SLEEVE_ARC_SEGMENTS * 6];
+		int k = 0;
+		for (int rib = 0; rib < SLEEVE_RIBBONS; rib++)
+		{
+			int b0 = rib * perRibbon;
+			for (int r = 0; r < SLEEVE_RINGS - 1; r++)
+			{
+				for (int s = 0; s < SLEEVE_ARC_SEGMENTS; s++)
+				{
+					int i0 = b0 + r * across + s;
+					int i1 = i0 + 1;
+					int i2 = i0 + across;
+					int i3 = i2 + 1;
+					tris[k++] = i0; tris[k++] = i2; tris[k++] = i1;
+					tris[k++] = i1; tris[k++] = i2; tris[k++] = i3;
+				}
+			}
+		}
+
+		Mesh mesh = new Mesh();
+		mesh.name = source.name + "__flameSleeve";
+		mesh.vertices = verts;
+		mesh.uv = uvs;
+		mesh.colors = cols;
+		mesh.triangles = tris;
+		mesh.RecalculateBounds();
+
+		_sleeveCache[source] = mesh;
+		_sleeveAxis[source] = axis;
+		_sleeveCentre[source] = centre;
+
+		Debug.Log("WeaponSkinHelper: flame sleeve for " + source.name
+			+ " axis=" + axis + " radius=" + radius.ToString("F3")
+			+ " (thin half=" + thin.ToString("F3") + ", len=" + len.ToString("F3") + ")"
+			+ " span=" + (end - start).ToString("F3")
+			+ " curve=" + (ring[SLEEVE_RINGS - 1] - ring[0]).magnitude.ToString("F3"));
+		return mesh;
+	}
 
 	/// <summary>
 	/// A copy of the mesh with every vertex colour set to white.
@@ -590,12 +931,21 @@ public static class WeaponSkinHelper
 /// </summary>
 public class WeaponFlameAnimator : MonoBehaviour
 {
-	public float Speed = 0.35f;          // sheet heights per second
-	public float SwaySpeed = 0.13f;      // slight horizontal drift so it does not look rigid
+	public float Speed = 0.17f;          // sheet heights per second, along the blade
+	public float SwaySpeed = 0.13f;      // slight drift so it does not look rigid
 	public float SwayAmount = 0.015f;
+
+	/// <summary>
+	/// Axis the sleeve spins about, in the parent's local space -- the blade's long axis, as
+	/// measured from the mesh bounds. Set by ApplyFlames; without it the flames would tumble
+	/// about an arbitrary axis instead of orbiting the sword.
+	/// </summary>
+	public Vector3 SpinAxis = Vector3.up;
+	public float SpinDegreesPerSecond = 0f;
 
 	private Renderer _renderer;
 	private float _v;
+	private float _spin;
 
 	private void Start()
 	{
@@ -606,6 +956,17 @@ public class WeaponFlameAnimator : MonoBehaviour
 	{
 		if (_renderer == null || _renderer.material == null)
 			return;
+
+		// Two independent motions, which is what stops it reading as a rigid spinning tube:
+		// the sleeve ORBITS the blade, while the fire itself travels ALONG it.
+		// Only spins when explicitly asked. A sleeve that follows a CURVED blade cannot be
+		// rotated as a rigid body -- the curve would swing off the steel, which is the bug
+		// this replaced. Motion comes from the texture travelling along the helix instead.
+		if (SpinDegreesPerSecond != 0f)
+		{
+			_spin = Mathf.Repeat(_spin + SpinDegreesPerSecond * Time.deltaTime, 360f);
+			transform.localRotation = Quaternion.AngleAxis(_spin, SpinAxis);
+		}
 
 		_v = Mathf.Repeat(_v + Speed * Time.deltaTime, 1f);
 		float u = Mathf.Sin(Time.time * SwaySpeed * 6.2832f) * SwayAmount;
