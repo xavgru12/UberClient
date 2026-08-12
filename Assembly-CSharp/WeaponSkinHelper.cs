@@ -15,6 +15,7 @@
 //   9010 Solar Cannon   (base 1005 Cannon)
 //   9011 Toxic Splatter (base 1003 PaintShotty)
 //   9016 Crimson Dragon (base 6  MythicEdge-DE, premium melee)
+//   9017 Frostbound     (base 6  MythicEdge-DE, premium melee) -- see-through, animated
 //
 // This does NOT check ownership/equip state beyond what the game itself already enforces
 // via AssignWeapon (only ever called with an item the player has equipped in their
@@ -74,6 +75,59 @@ public static class WeaponSkinHelper
 		// AWP_Roughed can reach it. Doing so needs the mesh decimated, baked down to
 		// diffuse+normal, and shipped in an AssetBundle -- a custom mesh, not a re-texture.
 		{ 9016, "9016_CrimsonDragon.png" },
+		// 2026-08-12. Second skin on the katana, and the first that is not a pure re-texture:
+		// Frostbound is genuinely see-through, with animated flames over it.
+		//
+		// Its ALPHA CHANNEL MEANS SOMETHING DIFFERENT from every other skin here. The stock
+		// material is Bumped Specular, whose shader reads `o.Gloss = tex.a`, so alpha is a
+		// GLOSS mask everywhere else in this file. This skin swaps the shader for an
+		// alpha-blended one, where _MainTex is "Base (RGB) Trans (A)" -- so its alpha is
+		// TRANSPARENCY. Do not composite the base weapon's specular mask onto this one; it
+		// would come out as an opacity map and read as a smeared, half-dissolved sword.
+		//
+		// The translucency is authored from the base's own gloss mask through a smoothstep
+		// rather than copied: gloss is bimodal on this weapon (p50 0.15, p95 1.00), so the
+		// polished-metal texels are separable from the wrap and saya panels. That puts the
+		// blade at 8.5% of the sheet under alpha 0.55 while 85% stays solid, which is what
+		// keeps the grip looking held rather than ghostly.
+		{ 9017, "9017_Frostbound.png" },
+	};
+
+	/// <summary>
+	/// Optional per-skin SHADER override, in preference order, with the first one that
+	/// resolves winning.
+	///
+	/// Order is not cosmetic. Glass-Hangar is the better look -- it carries a reflection
+	/// cubemap, which sells ice far better than a specular highlight -- but it is referenced
+	/// by ZERO item materials in the client, so nothing guarantees it survived shader
+	/// stripping into the shipped build, and Shader.Find would then return null. Transparent/
+	/// Diffuse is referenced by shipped gear (bandannahead, beardandmo, cap, juliaenzo) and
+	/// by the Wrecker's own glass submaterial, so it is certain to be present. The Wrecker is
+	/// also the precedent that this works at all: it already ships an alpha-blended
+	/// submaterial on a weapon the player holds.
+	///
+	/// Note both are Lambert -- there is no alpha-BLENDED bumped specular anywhere in the
+	/// client's 63 shaders, only a cutout one, which does binary on/off and reads as holes
+	/// rather than glass. So a see-through blade costs us the normal map, and the surface
+	/// relief has to live in the painted colour instead. That trade is deliberate.
+	/// </summary>
+	public static readonly Dictionary<int, string[]> SkinShaders = new Dictionary<int, string[]>
+	{
+		{ 9017, new string[] { "Unique/Transparent/Glass-Hangar", "Transparent/Diffuse" } },
+	};
+
+	/// <summary>
+	/// Optional per-skin animated flame overlay: a second copy of the weapon's own mesh,
+	/// drawn additively over the top with its UVs scrolling.
+	///
+	/// Additive is why the sheet is black-backed. "Particles/Additive" adds its texture to
+	/// whatever is behind it, so black contributes nothing and brightness IS opacity -- the
+	/// black background is the transparency, not a placeholder for it. A sheet whose
+	/// background sits just above zero glows as a permanent haze over the whole weapon.
+	/// </summary>
+	public static readonly Dictionary<int, string> SkinFlames = new Dictionary<int, string>
+	{
+		{ 9017, "9017_Frostbound_Flames.png" },
 	};
 
 	// Shop icons. ProxyItem loads the BASE weapon's "<prefabPath>-Icon" from Resources and we
@@ -98,6 +152,7 @@ public static class WeaponSkinHelper
 		{ 9014, "9014_AbyssalLeviathan_Icon.png" },
 		{ 9015, "9015_NeonCircuit_Icon.png" },
 		{ 9016, "9016_CrimsonDragon_Icon.png" },
+		{ 9017, "9017_Frostbound_Icon.png" },
 	};
 
 	// Optional per item tracer: gives a weapon a travelling muzzle to hitpoint beam it
@@ -261,8 +316,132 @@ public static class WeaponSkinHelper
 			r.material.mainTexture = tex;
 			if (r.material.HasProperty("_MainTex"))
 				r.material.SetTexture("_MainTex", tex);
+
+			ApplyShaderOverride(r, itemId);
+		}
+
+		ApplyFlames(weaponRoot, itemId);
+	}
+
+	/// <summary>
+	/// Swap this renderer's shader, for skins that need to be something other than opaque.
+	///
+	/// Renderer.material is already a per-instance copy, so assigning a shader here does not
+	/// touch the shared material and cannot leak onto another player's weapon.
+	///
+	/// Falls through the candidate list and takes the first that resolves, because
+	/// Shader.Find only finds shaders that actually made it into the build. A shader no
+	/// material references may have been stripped, and the failure is silent: the skin would
+	/// simply render opaque with no error. Logged so it is visible which one bound.
+	/// </summary>
+	private static void ApplyShaderOverride(Renderer r, int itemId)
+	{
+		string[] candidates;
+		if (!SkinShaders.TryGetValue(itemId, out candidates) || candidates == null)
+			return;
+
+		for (int i = 0; i < candidates.Length; i++)
+		{
+			Shader s = Shader.Find(candidates[i]);
+			if (s == null)
+				continue;
+
+			r.material.shader = s;
+			if (i > 0)
+			{
+				Debug.Log("WeaponSkinHelper: skin " + itemId + " fell back to shader '"
+					+ candidates[i] + "' ('" + candidates[0] + "' is not in this build)");
+			}
+			return;
+		}
+
+		Debug.LogWarning("WeaponSkinHelper: skin " + itemId
+			+ " found none of its shaders in the build; it will render opaque");
+	}
+
+	/// <summary>
+	/// Attach the animated flame overlay: for every mesh we just skinned, add a child holding
+	/// the SAME mesh with an additive material, and scroll its UVs.
+	///
+	/// The overlay is a separate GameObject rather than a second material on the weapon so it
+	/// can be removed by deleting one child, and so the scroll cannot disturb the blade's own
+	/// texture offset.
+	///
+	/// Draw order is set explicitly. The glass sits in the Transparent queue (3000) and the
+	/// overlay must come after it, or the flames render behind the blade they are supposed to
+	/// be licking across. Transparent geometry does not write depth, so this ordering is the
+	/// only thing deciding it.
+	/// </summary>
+	private static void ApplyFlames(GameObject weaponRoot, int itemId)
+	{
+		string sheet;
+		if (!SkinFlames.TryGetValue(itemId, out sheet))
+			return;
+
+		Texture2D flame = LoadFromDisk(sheet);
+		if (flame == null)
+			return;
+		flame.wrapMode = TextureWrapMode.Repeat;   // it scrolls, so it must tile
+
+		Shader additive = Shader.Find("Particles/Additive");
+		if (additive == null)
+		{
+			Debug.LogWarning("WeaponSkinHelper: 'Particles/Additive' missing, no flames for " + itemId);
+			return;
+		}
+
+		MeshFilter[] filters = weaponRoot.GetComponentsInChildren<MeshFilter>(true);
+		foreach (MeshFilter mf in filters)
+		{
+			if (mf == null || mf.sharedMesh == null)
+				continue;
+
+			Renderer src = mf.GetComponent<Renderer>();
+			if (src == null || src.material == null)
+				continue;
+
+			// Never overlay an effect renderer -- that is the muzzle flash, and stacking an
+			// additive copy on an additive quad doubles it into a bright block.
+			Shader sh = src.material.shader;
+			if (sh != null && sh.name != null && sh.name.IndexOf("Particle", StringComparison.OrdinalIgnoreCase) >= 0)
+				continue;
+
+			// AssignWeapon can run more than once for the same weapon instance; without this
+			// each call would stack another overlay and the flames would get brighter every
+			// respawn until the blade was a white blob.
+			if (mf.transform.FindChild(FlameChildName) != null)
+				continue;
+
+			GameObject go = new GameObject(FlameChildName);
+			go.transform.parent = mf.transform;
+			go.transform.localPosition = Vector3.zero;
+			go.transform.localRotation = Quaternion.identity;
+			// A hair larger so it never z-fights with the surface it sits on.
+			go.transform.localScale = new Vector3(1.015f, 1.015f, 1.015f);
+
+			MeshFilter of = go.AddComponent<MeshFilter>();
+			of.sharedMesh = mf.sharedMesh;
+
+			MeshRenderer or = go.AddComponent<MeshRenderer>();
+			Material m = new Material(additive);
+			m.mainTexture = flame;
+			if (m.HasProperty("_TintColor"))
+			{
+				// Particles/Additive multiplies by _TintColor, so this is the intensity dial.
+				// Held back deliberately: the sheet is 30% coverage at full white, and at
+				// full tint it washes the ice out to a flat glare.
+				m.SetColor("_TintColor", new Color(0.42f, 0.62f, 0.78f, 0.5f));
+			}
+			m.renderQueue = 3100;               // after the glass at 3000
+			or.material = m;
+			or.castShadows = false;
+			or.receiveShadows = false;
+
+			go.AddComponent<WeaponFlameAnimator>();
 		}
 	}
+
+	private const string FlameChildName = "__SkinFlameOverlay";
 
 	/// <summary>
 	/// Swap the weapon's impact/particle config so it draws a travelling beam, and attach
@@ -313,6 +492,44 @@ public static class WeaponSkinHelper
 /// matters because SRParticleLanceTrail.mat is also used by SpringGrenade and
 /// LR_FinalWord_MissileSticky.
 /// </summary>
+/// <summary>
+/// Scrolls the flame overlay's UVs so the fire moves up the blade.
+///
+/// The sheet is authored to tile seamlessly top to bottom -- verified by measuring the wrap
+/// join against the texture's own row-to-row difference, which came out at 0.07 where 1.0
+/// would mean "indistinguishable from any other row". A sheet that does not loop produces a
+/// seam that marches up the weapon once per cycle, forever.
+///
+/// Offset is wrapped with Mathf.Repeat rather than left to grow. Time.time is a float, and
+/// after a long match it is large enough that adding a small delta stops changing the low
+/// bits -- the scroll would visibly stutter and then freeze. Keeping the value inside 0..1
+/// avoids that entirely.
+/// </summary>
+public class WeaponFlameAnimator : MonoBehaviour
+{
+	public float Speed = 0.35f;          // sheet heights per second
+	public float SwaySpeed = 0.13f;      // slight horizontal drift so it does not look rigid
+	public float SwayAmount = 0.015f;
+
+	private Renderer _renderer;
+	private float _v;
+
+	private void Start()
+	{
+		_renderer = GetComponent<Renderer>();
+	}
+
+	private void LateUpdate()
+	{
+		if (_renderer == null || _renderer.material == null)
+			return;
+
+		_v = Mathf.Repeat(_v + Speed * Time.deltaTime, 1f);
+		float u = Mathf.Sin(Time.time * SwaySpeed * 6.2832f) * SwayAmount;
+		_renderer.material.SetTextureOffset("_MainTex", new Vector2(u, _v));
+	}
+}
+
 public class WeaponTracerTinter : MonoBehaviour
 {
 	public Color StartColour = Color.white;
