@@ -438,7 +438,7 @@ public static class WeaponSkinHelper
 			go.transform.localScale = Vector3.one;
 
 			MeshFilter of = go.AddComponent<MeshFilter>();
-			of.sharedMesh = mf.sharedMesh;
+			of.sharedMesh = WhiteVertexCopy(mf.sharedMesh);
 
 			MeshRenderer or = go.AddComponent<MeshRenderer>();
 			Material m = new Material(additive);
@@ -449,7 +449,11 @@ public static class WeaponSkinHelper
 				// MeshRenderer has no vertex colours so that term is white. The factor of TWO
 				// is the part worth remembering: a tint of 0.42/0.62/0.78 is not "60% strength",
 				// it peaks at 0.84/1.24/1.56 and clips -- brighter than the blade underneath.
-				m.SetColor("_TintColor", new Color(0.10f, 0.16f, 0.22f, 0.5f));
+				// With white vertex colours the arithmetic is finally predictable:
+				// 2 * 1 * tint * tex, blended SrcAlpha One, so a white flame texel adds
+				// (0.36, 0.52, 0.64) at the peak -- clearly visible as a cool white glow
+				// without pushing the blade to clip.
+				m.SetColor("_TintColor", new Color(0.18f, 0.26f, 0.32f, 0.5f));
 			}
 			// Tile the sheet ALONG the blade. The overlay samples with the weapon's own UVs,
 			// where the blade is one long thin island, so at 1x tiling a single flame tongue
@@ -466,6 +470,46 @@ public static class WeaponSkinHelper
 	}
 
 	private const string FlameChildName = "__SkinFlameOverlay";
+
+	private static readonly Dictionary<Mesh, Mesh> _flameMeshCache = new Dictionary<Mesh, Mesh>();
+
+	/// <summary>
+	/// A copy of the mesh with every vertex colour set to white.
+	///
+	/// This is what makes the flame overlay work at all. "Particles/Additive" is written for
+	/// particle systems, which always supply vertex colours, and its fragment is
+	///
+	///     2.0 * i.color * _TintColor * tex        with  o.color = v.color
+	///
+	/// A weapon mesh has no colour channel, so v.color is UNDEFINED -- and the tint is being
+	/// multiplied by whatever garbage happens to be in that register. That is why the first
+	/// in-game test blew out to a white smear, and why turning the tint down afterwards
+	/// changed nothing: the tint was never the term in control.
+	///
+	/// The copy matters as much as the colours. mf.sharedMesh is shared with the base weapon
+	/// and with every other player holding one, so writing colours into it would corrupt the
+	/// stock Mythic Edge for the whole session. Cached per source mesh so a respawn does not
+	/// allocate a new copy every time.
+	/// </summary>
+	private static Mesh WhiteVertexCopy(Mesh source)
+	{
+		if (source == null)
+			return null;
+
+		Mesh cached;
+		if (_flameMeshCache.TryGetValue(source, out cached) && cached != null)
+			return cached;
+
+		Mesh copy = (Mesh)UnityEngine.Object.Instantiate(source);
+		copy.name = source.name + "__flameOverlay";
+		Color[] colours = new Color[copy.vertexCount];
+		for (int i = 0; i < colours.Length; i++)
+			colours[i] = Color.white;
+		copy.colors = colours;
+
+		_flameMeshCache[source] = copy;
+		return copy;
+	}
 
 	/// <summary>
 	/// Swap the weapon's impact/particle config so it draws a travelling beam, and attach
