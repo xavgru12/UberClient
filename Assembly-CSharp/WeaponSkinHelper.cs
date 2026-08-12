@@ -487,6 +487,21 @@ public static class WeaponSkinHelper
 				continue;
 
 			GameObject go = new GameObject(FlameChildName);
+
+			// INHERIT THE LAYER. `new GameObject` always starts on layer 0 (Default) -- it
+			// does not take its parent's layer, and nothing later fixes it, because
+			// Avatar.AssignWeapon does its SetLayerRecursively FIVE LINES BEFORE it calls
+			// into this file (Avatar.cs:173 vs :178). WeaponSlot.cs:187 is the same shape.
+			//
+			// That one missing line is what produced every "glitch" in testing. The
+			// first-person weapon lives on a layer only the weapon camera draws, so an
+			// overlay left on Default is picked up by the MAIN world camera instead: a blade
+			// hanging in the world at the first-person weapon's position, which sits right in
+			// front of the camera and therefore renders enormous. It read as a second sword,
+			// as a giant translucent slab, and as wrong positioning -- and it survived fixes
+			// to scale, tint and vertex colours because none of them were the cause.
+			go.layer = mf.gameObject.layer;
+
 			go.transform.parent = mf.transform;
 			go.transform.localPosition = Vector3.zero;
 			go.transform.localRotation = Quaternion.identity;
