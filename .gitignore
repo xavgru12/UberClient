@@ -1,3 +1,6 @@
 bin/
 obj/
 .vs/
+# Superseded skin art, renamed aside rather than deleted when a texture was replaced.
+# Kept on disk so a regression can be compared against what it replaced; not history.
+*.superseded
