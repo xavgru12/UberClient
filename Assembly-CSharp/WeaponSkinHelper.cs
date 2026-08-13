@@ -373,7 +373,7 @@ public static class WeaponSkinHelper
 		Renderer[] renderers = weaponRoot.GetComponentsInChildren<Renderer>(true);
 		foreach (Renderer r in renderers)
 		{
-			if (r == null || r.material == null)
+			if (r == null)
 				continue;
 
 			// Skip effect renderers. A weapon's children include its muzzle flash and shell
@@ -381,20 +381,35 @@ public static class WeaponSkinHelper
 			// onto an additive quad makes the flash render as a bright rectangle showing a
 			// slab of the UV atlas.
 			//
-			// This has been wrong since the first version of this file, but it stayed
-			// invisible for a long time by luck: the earlier skins carried a specular mask
-			// that is 82-84% near-zero alpha, so the additive quad multiplied out to nothing.
-			// The 4.7.1 MachineGun base's mask is 74.6% MID-range, so the same bug finally
-			// showed up as a visible square. Measured, not guessed.
+			// This stayed invisible for a long time by luck: the earlier skins carried a
+			// specular mask that is 82-84% near-zero alpha, so the additive quad multiplied
+			// out to nothing. The 4.7.1 MachineGun base's mask is 74.6% MID-range, so the
+			// same bug finally showed up as a visible square. Measured, not guessed.
 			//
-			// Verified in game 2026-08-11: the square is gone. Note the flash then renders
-			// as NOTHING rather than as the stock flash, which is not what skipping the
-			// assignment alone should do, so something else on that quad depends on this
-			// path. Accepted as-is for now; a skinned weapon with no muzzle flash is a
-			// better outcome than one with a bright rectangle, but this is not fully
-			// understood and is worth revisiting.
-			Shader sh = r.material.shader;
+			// INSPECT VIA sharedMaterial, NOT material. This is the whole reason the flash
+			// used to vanish rather than fall back to stock.
+			//
+			// Renderer.material is not a getter: the first access INSTANTIATES a private copy
+			// of the shared material and rebinds this renderer to it. The old code read
+			// `r.material == null` and `r.material.shader` before deciding to skip, so every
+			// effect renderer on the weapon got a material instance forced onto it even though
+			// we then skipped it. That detaches the quad from the shared material the game's
+			// own effect code drives, and the flash renders as NOTHING.
+			//
+			// That is exactly the "renders as nothing rather than as the stock flash, which is
+			// more than skipping alone should do" note that sat here unexplained. Reading
+			// sharedMaterial inspects without instantiating, so a skipped renderer is left
+			// genuinely untouched and keeps its stock behaviour.
+			Material shared = r.sharedMaterial;
+			if (shared == null)
+				continue;
+			Shader sh = shared.shader;
 			if (sh != null && sh.name != null && sh.name.IndexOf("Particle", StringComparison.OrdinalIgnoreCase) >= 0)
+				continue;
+
+			// Past this point the renderer IS being skinned, so instantiating its material
+			// is intended -- and keeps the change per-instance, off the shared asset.
+			if (r.material == null)
 				continue;
 
 			r.material.mainTexture = tex;
