@@ -8,14 +8,22 @@
 // (ProxyItem's constructor) for these 5 item ids. No custom mesh, no AssetBundle --
 // these are pure re-textures of weapons that already exist in the game.
 //
-// Item ID -> base weapon mapping (from unity_2022_tg/skin-framework commit 850893ee):
-//   9007 Plasma Bat     (base 1000 TheSplatbat)
-//   9008 Inferno MG     (base 1002 MachineGun)
-//   9009 Cryo Strike    (base 1004 PaintSniper)
-//   9010 Solar Cannon   (base 1005 Cannon)
-//   9011 Natural Shotgun (base 1003 PaintShotty)  -- renamed 2026-08-12
-//   9016 Crimson Dragon (base 6  MythicEdge-DE, premium melee)
-//   9017 Frostbound     (base 6  MythicEdge-DE, premium melee) -- see-through, animated
+// Item ID -> base weapon mapping (from unity_2022_tg/skin-framework commit 850893ee).
+// Keep this list complete: it went stale once at 9012-9015 and again at 9018, which makes it
+// look authoritative while being wrong.
+//   9007 Plasma Bat        (base 1000 TheSplatbat)
+//   9008 Inferno MG        (base 1002 MachineGun)
+//   9009 Cryo Strike       (base 1004 PaintSniper)
+//   9010 Solar Cannon      (base 1005 Cannon)
+//   9011 Natural Shotgun   (base 1003 PaintShotty)   -- renamed from Toxic Splatter 2026-08-12
+//   9012 Void Amethyst     (base 1004 PaintSniper)   -- also the only tracer override
+//   9013 Bloodhound        (base 1003 PaintShotty)
+//   9014 Abyssal Leviathan (base 1005 Cannon)
+//   9015 Neon Circuit      (base 1002 MachineGun)
+//   9016 Crimson Dragon    (base 6 MythicEdge-DE, premium melee)
+//   9017 Frostbound        (base 6 MythicEdge-DE)    -- see-through ice, HELIX flames
+//   9018 Frostfire         (base 6 MythicEdge-DE)    -- shares 9017's art, SURFACE flames
+//   9019 Bloodglass        (base 6 MythicEdge-DE)    -- see-through red, SURFACE flames
 //
 // This does NOT check ownership/equip state beyond what the game itself already enforces
 // via AssignWeapon (only ever called with an item the player has equipped in their
@@ -96,6 +104,59 @@ public static class WeaponSkinHelper
 		// copies of the same art would only be two things to keep in sync. What differs is the
 		// flame mode below, the catalog name, and the icon.
 		{ 9018, "9017_Frostbound.png" },
+		// 2026-08-13. Third skin on this katana and the second see-through one: red glass rather
+		// than ice. It has its OWN art, unlike 9018, because the palette is the whole point.
+		//
+		// Getting red to work here took three generation passes, and the reason is worth keeping.
+		// This base already carries a dragon etched down the blade and a diamond-weave grip, and
+		// 9016 Crimson Dragon is already the red katana on it, so colour alone could never
+		// separate the two. What separates this one is that it is TRANSPARENT: the dragon reads
+		// as a denser form suspended INSIDE the glass rather than as a glowing inlay, which is
+		// 9016's language.
+		//
+		// The shipped art needed a luminance-only correction (gamma 0.50 + 0.04 lift, hue and
+		// saturation untouched). Every red generation came back underexposed -- around brightness
+		// 38 against the 55-80 target -- while the same prompt asking for ice came back correctly
+		// exposed. A plain RGB gamma fixes the exposure but washes the red out to R/B 1.70, under
+		// the 2.0 gate; lifting only the value channel holds R/B at 2.52, just above 9016's 2.57.
+		{ 9019, "9019_Bloodglass.png" },
+		// 2026-08-13. First see-through skins on a FIREARM and on a blunt melee, and the first
+		// whose transparency is NOT authored from a gloss mask -- neither base has one, their
+		// alpha is fully opaque (measured). So the translucency comes from painted BRIGHTNESS
+		// instead: the art was briefed to keep held parts dark (<80) and glass parts bright
+		// (>140), and the ramp sits across that measured gap. AWP came back 35% dark / 31%
+		// bright, the hammer 30% / 39%, both with a thin middle -- separable.
+		{ 9020, "9020_Permafrost.png" },
+		{ 9021, "9021_Icebreaker.png" },
+		// 2026-08-13. The glacier set: the first skins in this file that are GENERATED rather
+		// than painted. tools/make_glacier_skin.py transforms each base pixel-wise -- luminance
+		// through an ice ramp, procedural fractures and frost scaled by a glass weight, edge
+		// light from the base's own gradient.
+		//
+		// Chosen over generation because an ice treatment is a recolour, not an invention: the
+		// panel seams, ribs and knurling must stay exactly where they are, and that is what a
+		// generator cannot be told. It also makes the failures we kept hitting impossible --
+		// UV islands cannot move and coverage cannot drop, because every output pixel comes
+		// from the input pixel at the same coordinate.
+		//
+		// Bases identified by correlating against the skins that already render correctly, not
+		// by filename: MachineGun_DM 0.662, Sniper-diffuse 0.325, Shotgun-diffuse 0.321,
+		// Cannon-diffuse 0.295, each well clear of its runner-up. Picking a base by name is
+		// what left 9015 with ~37% of its mesh unpainted.
+		{ 9022, "9022_MGWatery.png" },
+		{ 9023, "9023_SniperWatery.png" },
+		{ 9024, "9024_ShotgunWatery.png" },
+		{ 9025, "9025_CannonWatery.png" },
+		// The same generator, second palette. Frost SCATTERS light where water TRANSMITS it,
+		// so the two ramps differ in more than hue: water holds its colour as it brightens
+		// (B/R 2.0-2.8), frost climbs to a neutral near-white (B/R 1.2-1.4) and keeps its
+		// cyan bias almost off, because a blue cast on a white ramp reads as plastic.
+		// Frost also gets far less liquid smoothing -- 0.35 against 0.70 -- since snow is a
+		// granular surface and should not flow.
+		{ 9026, "9026_MGFrosted.png" },
+		{ 9027, "9027_SniperFrosted.png" },
+		{ 9028, "9028_ShotgunFrosted.png" },
+		{ 9029, "9029_CannonFrosted.png" },
 	};
 
 	/// <summary>
@@ -111,6 +172,24 @@ public static class WeaponSkinHelper
 	{
 		{ 9017, FlameMode.Helix },
 		{ 9018, FlameMode.Surface },
+		// Surface, matching 9018 rather than 9017: the brief was flames INSIDE the body, and the
+		// helix sleeve stands the fire off the blade instead.
+		{ 9019, FlameMode.Surface },
+		// Surface: fire on the weapon itself, matching 9018 Frostfire.
+		//
+		// This crashed the client when it first shipped, inside WhiteVertexCopy's
+		// Object.Instantiate of the weapon mesh. That call is gone -- the overlay mesh is now
+		// rebuilt by hand from the source arrays, so a mesh the CPU cannot read raises a
+		// catchable managed error and costs the weapon its flames rather than the session.
+		// 9020/9021 removed: they carry no flame sheet, so the mode is unused.
+		{ 9022, FlameMode.Surface },
+		{ 9023, FlameMode.Surface },
+		{ 9024, FlameMode.Surface },
+		{ 9025, FlameMode.Surface },
+		{ 9026, FlameMode.Surface },
+		{ 9027, FlameMode.Surface },
+		{ 9028, FlameMode.Surface },
+		{ 9029, FlameMode.Surface },
 	};
 
 	/// <summary>
@@ -135,6 +214,27 @@ public static class WeaponSkinHelper
 	{
 		{ 9017, new string[] { "Unique/Transparent/Glass-Hangar", "Transparent/Diffuse" } },
 		{ 9018, new string[] { "Unique/Transparent/Glass-Hangar", "Transparent/Diffuse" } },
+		// 9019 deliberately SKIPS Glass-Hangar and takes Transparent/Diffuse directly.
+		//
+		// Glass-Hangar binds fine here -- the client logs it -- but it adds a cubemap reflection
+		// whose _Cube we never assign, so it samples WHITE. On the ice skins that wash is
+		// invisible or even flattering; on red it turns the blade pale grey-pink. Measured
+		// against the shipped texture, which is unambiguously red (mean 109/15/18, blade
+		// highlights 225/59/61 at R/B 3.69) and still rendered white in game.
+		//
+		// Transparent/Diffuse has no reflection term at all: albedo is the texture, alpha is
+		// the texture's alpha. It costs the faint cubemap sparkle and keeps the colour, which
+		// is the right trade for a skin whose entire identity is that it is red.
+		{ 9019, new string[] { "Transparent/Diffuse" } },
+		{ 9020, new string[] { "Unique/Transparent/Glass-Hangar", "Transparent/Diffuse" } },
+		{ 9021, new string[] { "Unique/Transparent/Glass-Hangar", "Transparent/Diffuse" } },
+		// 9022-9025 (the glacier set) are deliberately ABSENT: they keep the stock opaque
+		// shader. Shipped once with Glass-Hangar and every one of them rendered HOLLOW --
+		// bright ice edges visible and the body see-through to the wall behind. Alpha-blended
+		// geometry does not write depth, so overlapping faces of one mesh sort arbitrarily.
+		// A katana blade is a single thin shape and survives that; a machine gun is dozens of
+		// overlapping parts and does not. Their alpha carries GLOSS for Bumped Specular
+		// instead, which is what gives frozen water its hard wet highlight.
 	};
 
 	/// <summary>
@@ -146,10 +246,102 @@ public static class WeaponSkinHelper
 	/// black background is the transparency, not a placeholder for it. A sheet whose
 	/// background sits just above zero glows as a permanent haze over the whole weapon.
 	/// </summary>
+	/// <summary>
+	/// Per-skin tint for Glass-Hangar's cubemap reflection term. Absent = the icy default.
+	///
+	/// Exists because 9019 Bloodglass rendered BLUE in game despite a red texture: the single
+	/// hardcoded cool tint was laying a blue cast over every see-through skin, which is
+	/// invisible on the ice ones and fatal on a red one.
+	/// </summary>
+	public static readonly Dictionary<int, Color> SkinReflectTints = new Dictionary<int, Color>
+	{
+		// Warm, so the reflection term reinforces the red instead of fighting it.
+		{ 9019, new Color(0.95f, 0.55f, 0.52f, 0.08f) },
+	};
+
+	/// <summary>
+	/// Per-skin flame tint, overriding the per-MODE default. Absent = the mode default.
+	///
+	/// Particles/Additive computes 2 * vertexColour * tint * texture, so the peak add is twice
+	/// these numbers.
+	/// </summary>
+	public static readonly Dictionary<int, Color> SkinFlameTints = new Dictionary<int, Color>
+	{
+		// Near-neutral white with a slight warm bias: the brief for this skin is WHITE flames
+		// over red glass, so it must not be tinted red (they would vanish into the blade) and
+		// must not keep the blue-dominant Surface default (which is what made it look blue).
+		// Peak add 0.56 / 0.48 / 0.48.
+		// Peak add 0.22 / 0.18 / 0.18 -- deliberately much dimmer than the ice default.
+		// First attempt used 0.28/0.24/0.24 and the blade came back WHITE: Surface mode
+		// paints the whole weapon, so an additive wash of ~0.5 per channel over a blade
+		// sitting at brightness 69 buries the red entirely. The flames still read as white
+		// fire because they are white in the SHEET; the tint only sets how hard they burn.
+		{ 9019, new Color(0.11f, 0.09f, 0.09f, 0.5f) },
+	};
+
+	/// <summary>
+	/// Per-skin overrides for the flame sleeve's geometry.
+	///
+	/// Exists for the weapons whose meshes are NOT CPU-readable -- the AWP and the Death
+	/// Hammer. Surface mode copies the weapon's own geometry, and on those two `.vertices`
+	/// throws, so it is impossible there by any route rather than merely broken. The sleeve
+	/// is built from the bounding box, which IS readable, so it is the only way to put fire
+	/// on those weapons at all.
+	///
+	/// The defaults orbit a katana at 2x its half-thickness with two narrow strands. Pulled
+	/// in tight with more, wider strands, the same geometry stops reading as fire circling
+	/// the weapon and starts reading as fire clinging to it -- which is what Surface mode
+	/// gives on the weapons that can support it.
+	/// </summary>
+	public struct SleeveSpec
+	{
+		public float RadiusMult;   // multiple of the mesh's half-thickness
+		public int Ribbons;        // how many strands around the circumference
+		public float RibbonArc;    // radians of arc each strand covers
+		public float Twist;        // turns along the weapon's length
+		public float Start;        // 0 = butt, 1 = tip: where the sleeve begins
+		public float MaxLenFrac;   // radius ceiling as a fraction of length
+		public float VRepeat;      // how many times the flame sheet tiles ALONG the sleeve
+	}
+
+	public static readonly Dictionary<int, SleeveSpec> SkinSleeves = new Dictionary<int, SleeveSpec>
+	{
+		// Hugging: radius under 1x half-thickness so the strands sit ON the barrel, five of
+		// them so they wrap it, a wide arc so each is a sheet rather than a thread, and a low
+		// twist so they run ALONG the weapon instead of spiralling round it.
+		// (no entries: the two skins this was built for ship without flames -- see the
+		// note in SkinFlames. Defaults below apply to anything that does use a sleeve.)
+	};
+
 	public static readonly Dictionary<int, string> SkinFlames = new Dictionary<int, string>
 	{
 		{ 9017, "9017_Frostbound_Flames.png" },
 		{ 9018, "9017_Frostbound_Flames.png" },
+		// Shares the flame sheet with the ice skins on purpose: it is generic white fire on pure
+		// black that tiles vertically, and white fire over red glass is the contrast that sells
+		// this skin. Red flames on a red blade would mostly disappear.
+		{ 9019, "9017_Frostbound_Flames.png" },
+		// 9020 and 9021 have NO flames, deliberately, and this is where the attempt stopped
+		// rather than where it succeeded.
+		//
+		// Surface is impossible on them: their meshes are not CPU-readable, so the overlay
+		// cannot copy the weapon's geometry -- the client logs "cannot be copied on the CPU"
+		// for AWP and Death_Hammer. The fallback is a sleeve built from the bounding box,
+		// which does work, but two shapes of it were tried in game and both looked worse than
+		// no fire at all: five narrow strands read as combed fibre, and two broad ones tiled
+		// 9x were no better. The skins are good without them, so they ship clean.
+		//
+		// The SleeveSpec machinery below is left in place for whoever picks this up: it makes
+		// the sleeve's radius, strand count, arc, twist and sheet tiling per-skin, which is
+		// the vocabulary needed to tune this properly rather than by guessing.
+		{ 9022, "9017_Frostbound_Flames.png" },
+		{ 9023, "9017_Frostbound_Flames.png" },
+		{ 9024, "9017_Frostbound_Flames.png" },
+		{ 9025, "9017_Frostbound_Flames.png" },
+		{ 9026, "9017_Frostbound_Flames.png" },
+		{ 9027, "9017_Frostbound_Flames.png" },
+		{ 9028, "9017_Frostbound_Flames.png" },
+		{ 9029, "9017_Frostbound_Flames.png" },
 	};
 
 	// Shop icons. ProxyItem loads the BASE weapon's "<prefabPath>-Icon" from Resources and we
@@ -176,6 +368,13 @@ public static class WeaponSkinHelper
 		{ 9016, "9016_CrimsonDragon_Icon.png" },
 		{ 9017, "9017_Frostbound_Icon.png" },
 		{ 9018, "9018_Frostfire_Icon.png" },
+		{ 9019, "9019_Bloodglass_Icon.png" },
+		// Rendered once the mesh reader learned to decode COMPRESSED meshes. The AWP and
+		// Death Hammer store their geometry quantised under m_CompressedMesh with an empty
+		// _typelessdata, unlike every weapon the icon pipeline had handled before, so these
+		// two shipped with stock icons until that decoder existed.
+		{ 9020, "9020_Permafrost_Icon.png" },
+		{ 9021, "9021_Icebreaker_Icon.png" },
 	};
 
 	// Optional per item tracer: gives a weapon a travelling muzzle to hitpoint beam it
@@ -459,8 +658,17 @@ public static class WeaponSkinHelper
 			//
 			// With no cubemap to reflect there is nothing meaningful for this term to say, so
 			// it is turned down to a faint cool tint instead of being left at its default.
+			// PER SKIN, not shared. This started as one hardcoded icy value because every
+			// see-through skin was blue. 9019 Bloodglass is red, and inheriting a cool tint
+			// laid a blue cast over the whole blade -- in game it read as a BLUE sword, which
+			// is the one thing that skin must not be.
 			if (r.material.HasProperty("_ReflectColor"))
-				r.material.SetColor("_ReflectColor", new Color(0.55f, 0.75f, 0.95f, 0.08f));
+			{
+				Color reflect;
+				if (!SkinReflectTints.TryGetValue(itemId, out reflect))
+					reflect = new Color(0.55f, 0.75f, 0.95f, 0.08f); // icy default
+				r.material.SetColor("_ReflectColor", reflect);
+			}
 
 			Debug.Log("WeaponSkinHelper: skin " + itemId + " bound shader '" + candidates[i] + "'"
 				+ (i > 0 ? " (fell back; '" + candidates[0] + "' is not in this build)" : ""));
@@ -556,7 +764,7 @@ public static class WeaponSkinHelper
 			}
 			else
 			{
-				overlayMesh = BuildFlameSleeve(mf.sharedMesh, out axis, out centre);
+				overlayMesh = BuildFlameSleeve(mf.sharedMesh, itemId, out axis, out centre);
 			}
 			if (overlayMesh == null)
 				continue;
@@ -591,9 +799,16 @@ public static class WeaponSkinHelper
 				// the helix is two narrow ribbons covering very little of the frame, so it can
 				// run hot and read as white-hot fire, while Surface paints the whole weapon and
 				// the same value there would wash the ice out to a flat glare.
-				m.SetColor("_TintColor", mode == FlameMode.Surface
-					? new Color(0.18f, 0.26f, 0.32f, 0.5f)   // peak add 0.36 / 0.52 / 0.64
-					: new Color(0.40f, 0.47f, 0.52f, 0.5f)); // peak add 0.80 / 0.94 / 1.04
+				//
+				// Also PER SKIN. Both defaults below are blue-dominant because they were tuned
+				// on the ice skins, and Surface mode paints the WHOLE weapon -- so on a red
+				// blade that wash is a second blue cast on top of the reflection one.
+				Color tint;
+				if (!SkinFlameTints.TryGetValue(itemId, out tint))
+					tint = mode == FlameMode.Surface
+						? new Color(0.18f, 0.26f, 0.32f, 0.5f)   // peak add 0.36 / 0.52 / 0.64
+						: new Color(0.40f, 0.47f, 0.52f, 0.5f);  // peak add 0.80 / 0.94 / 1.04
+				m.SetColor("_TintColor", tint);
 			}
 			// Tile the sheet ALONG the blade. The overlay samples with the weapon's own UVs,
 			// where the blade is one long thin island, so at 1x tiling a single flame tongue
@@ -602,9 +817,13 @@ public static class WeaponSkinHelper
 			// On the sleeve, U runs AROUND the circumference and V runs ALONG the blade, so
 			// these two numbers mean something different than they did on the mesh copy:
 			// 2 flame columns around the sword, repeating 3 times down its length.
+			float vrep = 2f;
+			SleeveSpec tsp;
+			if (SkinSleeves.TryGetValue(itemId, out tsp) && tsp.VRepeat > 0f)
+				vrep = tsp.VRepeat;
 			m.SetTextureScale("_MainTex", mode == FlameMode.Surface
 				? new Vector2(1f, 4f)      // across the weapon UVs, as the original did
-				: new Vector2(1f, 2f));    // one band per ribbon, repeating along it
+				: new Vector2(1f, vrep));  // one band per ribbon, tiled along it
 			m.renderQueue = 3100;               // after the glass at 3000
 			or.material = m;
 			or.castShadows = false;
@@ -666,7 +885,7 @@ public static class WeaponSkinHelper
 	/// UVs are laid out U-around, V-along, which is what lets the flame sheet's vertical
 	/// tongues run down the length of the blade while the mesh spins about it.
 	/// </summary>
-	private static Mesh BuildFlameSleeve(Mesh source, out Vector3 axis, out Vector3 centre)
+	private static Mesh BuildFlameSleeve(Mesh source, int itemId, out Vector3 axis, out Vector3 centre)
 	{
 		axis = Vector3.up;
 		centre = Vector3.zero;
@@ -697,17 +916,27 @@ public static class WeaponSkinHelper
 		if (halfLen <= 1e-5f)
 			return null;
 
+		// per-skin geometry, falling back to the katana-tuned defaults
+		SleeveSpec sp;
+		if (!SkinSleeves.TryGetValue(itemId, out sp))
+		{
+			sp.RadiusMult = SLEEVE_RADIUS_MULT; sp.Ribbons = SLEEVE_RIBBONS;
+			sp.RibbonArc = SLEEVE_RIBBON_ARC;   sp.Twist = SLEEVE_TWIST_TURNS;
+			sp.Start = SLEEVE_START;            sp.MaxLenFrac = SLEEVE_MAX_LEN_FRAC;
+			sp.VRepeat = 2f;                    // the katana's original tiling
+		}
+
 		// MIN, not max: on a curved blade the wider cross-axis is the bend, not the steel.
 		float thin = Mathf.Min(size[(ai + 1) % 3], size[(ai + 2) % 3]) * 0.5f;
 		float len = halfLen * 2f;
-		float radius = Mathf.Clamp(thin * SLEEVE_RADIUS_MULT,
-			len * SLEEVE_MIN_LEN_FRAC, len * SLEEVE_MAX_LEN_FRAC);
+		float radius = Mathf.Clamp(thin * sp.RadiusMult,
+			len * SLEEVE_MIN_LEN_FRAC, len * sp.MaxLenFrac);
 
 		// Which way the blade points from the hand.
 		float sign = b.center[ai] >= 0f ? 1f : -1f;
 		float butt = b.center[ai] - sign * halfLen;
 		float tip = b.center[ai] + sign * halfLen;
-		float start = Mathf.Lerp(butt, tip, SLEEVE_START);
+		float start = Mathf.Lerp(butt, tip, sp.Start);
 		float end = tip;
 
 		Vector3 b_centre = b.center;
@@ -777,24 +1006,24 @@ public static class WeaponSkinHelper
 
 		int across = SLEEVE_ARC_SEGMENTS + 1;
 		int perRibbon = SLEEVE_RINGS * across;
-		int nv = perRibbon * SLEEVE_RIBBONS;
+		int nv = perRibbon * sp.Ribbons;
 		Vector3[] verts = new Vector3[nv];
 		Vector2[] uvs = new Vector2[nv];
 		Color[] cols = new Color[nv];
 
-		for (int rib = 0; rib < SLEEVE_RIBBONS; rib++)
+		for (int rib = 0; rib < sp.Ribbons; rib++)
 		{
-			float phase = (float)rib / SLEEVE_RIBBONS * Mathf.PI * 2f;
+			float phase = (float)rib / sp.Ribbons * Mathf.PI * 2f;
 			for (int r = 0; r < SLEEVE_RINGS; r++)
 			{
 				float t = (float)r / (SLEEVE_RINGS - 1);
 				float along = Mathf.Lerp(start, end, t);
 				float profile = Mathf.Lerp(1f, SLEEVE_TIP_SCALE, Mathf.Pow(t, 2.5f));
-				float twist = SLEEVE_TWIST_TURNS * Mathf.PI * 2f * t + phase;
+				float twist = sp.Twist * Mathf.PI * 2f * t + phase;
 				for (int s = 0; s < across; s++)
 				{
 					float w = (float)s / SLEEVE_ARC_SEGMENTS - 0.5f;
-					float ang = twist + w * SLEEVE_RIBBON_ARC;
+					float ang = twist + w * sp.RibbonArc;
 					int idx = rib * perRibbon + r * across + s;
 					verts[idx] = axis * along + ring[r]
 						+ pu * (Mathf.Cos(ang) * radius * profile)
@@ -805,9 +1034,9 @@ public static class WeaponSkinHelper
 			}
 		}
 
-		int[] tris = new int[SLEEVE_RIBBONS * (SLEEVE_RINGS - 1) * SLEEVE_ARC_SEGMENTS * 6];
+		int[] tris = new int[sp.Ribbons * (SLEEVE_RINGS - 1) * SLEEVE_ARC_SEGMENTS * 6];
 		int k = 0;
-		for (int rib = 0; rib < SLEEVE_RIBBONS; rib++)
+		for (int rib = 0; rib < sp.Ribbons; rib++)
 		{
 			int b0 = rib * perRibbon;
 			for (int r = 0; r < SLEEVE_RINGS - 1; r++)
@@ -862,6 +1091,27 @@ public static class WeaponSkinHelper
 	/// stock Mythic Edge for the whole session. Cached per source mesh so a respawn does not
 	/// allocate a new copy every time.
 	/// </summary>
+	/// <summary>
+	/// Can this mesh's geometry be read back on the CPU? Reading .vertices raises a managed
+	/// error for a mesh that is not CPU-readable, which is recoverable; Instantiate on the same
+	/// mesh is a native crash, which is not. So probe with the safe call before the unsafe one.
+	/// </summary>
+	private static bool CanCopyMesh(Mesh m)
+	{
+		try
+		{
+			if (m.vertexCount <= 0)
+				return false;
+			Vector3[] v = m.vertices;
+			return v != null && v.Length > 0;
+		}
+		catch (Exception e)
+		{
+			Debug.LogWarning("WeaponSkinHelper: mesh '" + m.name + "' is not CPU-readable: " + e.Message);
+			return false;
+		}
+	}
+
 	private static Mesh WhiteVertexCopy(Mesh source)
 	{
 		if (source == null)
@@ -871,12 +1121,56 @@ public static class WeaponSkinHelper
 		if (_flameMeshCache.TryGetValue(source, out cached) && cached != null)
 			return cached;
 
-		Mesh copy = (Mesh)UnityEngine.Object.Instantiate(source);
-		copy.name = source.name + "__flameOverlay";
-		Color[] colours = new Color[copy.vertexCount];
-		for (int i = 0; i < colours.Length; i++)
-			colours[i] = Color.white;
-		copy.colors = colours;
+		// HARD CRASH GUARD. Object.Instantiate on a mesh whose vertex data the CPU cannot read
+		// takes the whole client down with a native access violation -- not a managed exception,
+		// so nothing downstream can catch it. It killed the client on equipping the AWP and
+		// Death Hammer skins while the katana copied fine.
+		//
+		// Touching .vertices first turns that into a catchable managed error, so an unreadable
+		// mesh costs the weapon its flames instead of costing the player their session. A skin
+		// with no flames is a disappointment; a skin that crashes on equip is a broken build.
+		if (!CanCopyMesh(source))
+		{
+			Debug.LogWarning("WeaponSkinHelper: mesh '" + source.name + "' cannot be copied on "
+				+ "the CPU, so no flame overlay for it. The skin itself is unaffected.");
+			_flameMeshCache[source] = null;
+			return null;
+		}
+
+		// BUILT BY HAND, not Instantiated.
+		//
+		// Object.Instantiate(mesh) is the call that crashed: on the AWP and Death Hammer it
+		// took the client down with a native access violation, which no managed catch can
+		// trap. Reconstructing the mesh from its own arrays does exactly the same job, and
+		// every read here is a managed call that either succeeds or throws something
+		// catchable -- so the worst case is a weapon without flames, never a dead session.
+		//
+		// The overlay only needs geometry, UVs and white vertex colours: Particles/Additive
+		// computes 2 * vertexColour * _TintColor * texture and does not light the surface, so
+		// normals and tangents are dead weight and are deliberately not copied.
+		Mesh copy;
+		try
+		{
+			copy = new Mesh();
+			copy.name = source.name + "__flameOverlay";
+			copy.vertices = source.vertices;
+			copy.triangles = source.triangles;
+			Vector2[] uv = source.uv;
+			if (uv != null && uv.Length == copy.vertexCount)
+				copy.uv = uv;
+			Color[] colours = new Color[copy.vertexCount];
+			for (int i = 0; i < colours.Length; i++)
+				colours[i] = Color.white;
+			copy.colors = colours;
+			copy.RecalculateBounds();
+		}
+		catch (Exception e)
+		{
+			Debug.LogWarning("WeaponSkinHelper: could not rebuild '" + source.name
+				+ "' for the flame overlay (" + e.Message + "); skipping flames for it.");
+			_flameMeshCache[source] = null;
+			return null;
+		}
 
 		_flameMeshCache[source] = copy;
 		return copy;
