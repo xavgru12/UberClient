@@ -110,15 +110,13 @@ public static class ApplicationDataManager
         {
             WebServiceBaseUrl = "127.0.0.1/2.0/";
             ImagePath = "127.0.0.1/images/";
-            Version = "4.8.6";
         }
         else
         {
             WebServiceBaseUrl = "127.0.0.1/2.0/";
             ImagePath = "127.0.0.1/images/";
-            Version = "4.8.6";
         }
-        Version = "4.8.6";
+        Version = "4.8.11";
         IsMac = (Application.platform == RuntimePlatform.OSXPlayer);
 		applicationDateTime = 0f;
 		serverDateTime = DateTime.Now;
