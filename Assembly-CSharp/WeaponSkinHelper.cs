@@ -285,6 +285,16 @@ public static class WeaponSkinHelper
 			// 82-84% near-zero alpha multiplied out to nothing on an additive quad. A base whose
 			// mask is mostly MID-range finally showed it as a visible square. Measured, not
 			// guessed, and verified fixed in game on 2026-08-11.
+			//
+			// KNOWN AND ACCEPTED: skipping the assignment makes the flash render as NOTHING
+			// rather than as the stock flash, so a skinned weapon has no muzzle flash at all.
+			// That is more than skipping alone should do, so something else on that quad
+			// depends on this path -- it is not fully understood.
+			//
+			// This is a DECISION, not an oversight: confirmed in game on 2026-08-13 and kept
+			// deliberately. Do not "fix" it by removing the skip, which brings back the bright
+			// rectangle. Anyone restoring the stock flash needs to find why the quad goes
+			// invisible first.
 			Shader sh = r.material.shader;
 			if (sh != null && sh.name != null && sh.name.IndexOf("Particle", StringComparison.OrdinalIgnoreCase) >= 0)
 				continue;
