@@ -779,7 +779,22 @@
     <Compile Include="WeaponShootAnimator.cs" />
     <Compile Include="WeaponShootEvent.cs" />
     <Compile Include="WeaponSimulator.cs" />
+    <Compile Include="WeaponSkinHelper.cs" />
     <Compile Include="WeaponSlot.cs" />
+    <!-- Weapon skin art, compiled into the assembly so a build is self-contained and there is
+         no second file to deploy. LogicalName is set explicitly so the resource names do not
+         depend on RootNamespace or folder-to-namespace mangling; WeaponSkinHelper looks them
+         up as "WeaponSkins.<filename>". A loose file under UberStrike_Data/Skins still wins
+         over the embedded copy, so art can be iterated without rebuilding. -->
+    <EmbeddedResource Include="WeaponSkins\9011_NaturalShotgun.jpg">
+      <LogicalName>WeaponSkins.9011_NaturalShotgun.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9011_NaturalShotgun.alpha.png">
+      <LogicalName>WeaponSkins.9011_NaturalShotgun.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9011_NaturalShotgun_Icon.png">
+      <LogicalName>WeaponSkins.9011_NaturalShotgun_Icon.png</LogicalName>
+    </EmbeddedResource>
     <Compile Include="WeaponTailSound.cs" />
     <Compile Include="WeekendChallengePopupDialog.cs" />
     <Compile Include="WindowsUpdater.cs" />
