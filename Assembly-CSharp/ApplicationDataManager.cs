@@ -108,13 +108,13 @@ public static class ApplicationDataManager
 #endif
         if (!IsDebug)
         {
-            WebServiceBaseUrl = "127.0.0.1/2.0/";
-            ImagePath = "127.0.0.1/images/";
+            WebServiceBaseUrl = "127.0.0.1:5000/2.0/";
+            ImagePath = "127.0.0.1:5000/images/";
         }
         else
         {
-            WebServiceBaseUrl = "127.0.0.1/2.0/";
-            ImagePath = "127.0.0.1/images/";
+            WebServiceBaseUrl = "127.0.0.1:5000/2.0/";
+            ImagePath = "127.0.0.1:5000/images/";
         }
         Version = "4.8.11";
         IsMac = (Application.platform == RuntimePlatform.OSXPlayer);
