@@ -375,6 +375,19 @@ public static class WeaponSkinHelper
 		// two shipped with stock icons until that decoder existed.
 		{ 9020, "9020_Permafrost_Icon.png" },
 		{ 9021, "9021_Icebreaker_Icon.png" },
+		// Framing inherited per BASE weapon, not chosen: each of these takes the camera of the
+		// shipped skin on the same weapon (9008 for the MG, 9012 sniper, 9013 shotgun, 9014
+		// cannon), which is what keeps a family of icons looking like a set. The stock icons
+		// work the same way -- silhouette overlap between variants of one weapon measures
+		// 0.957-0.979 IoU, i.e. one camera per weapon and only the texture changes.
+		{ 9022, "9022_MGWatery_Icon.png" },
+		{ 9023, "9023_SniperWatery_Icon.png" },
+		{ 9024, "9024_ShotgunWatery_Icon.png" },
+		{ 9025, "9025_CannonWatery_Icon.png" },
+		{ 9026, "9026_MGFrosted_Icon.png" },
+		{ 9027, "9027_SniperFrosted_Icon.png" },
+		{ 9028, "9028_ShotgunFrosted_Icon.png" },
+		{ 9029, "9029_CannonFrosted_Icon.png" },
 	};
 
 	// Optional per item tracer: gives a weapon a travelling muzzle to hitpoint beam it
