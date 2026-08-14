@@ -795,5 +795,224 @@
       <Name>Assembly-CSharp-firstpass</Name>
     </ProjectReference>
   </ItemGroup>
+  <!-- Skin art.
+
+       Embedded so that a fresh clone compiles and runs with the skins visible, with no
+       deployment step. Shipping the DLL alone was the defect behind "all skins PR does not
+       work": the code arrived, the art did not, and a missing skin file is silent - the
+       weapon renders stock, which looks exactly like a broken patch.
+
+       WeaponSkinHelper checks UberStrike_Data/Skins/ FIRST, so a deployed loose file still
+       overrides the embedded copy and the patcher path is unchanged.
+
+       Embedding all of it once took this assembly to 51 MB, so every code-only fix
+       re-shipped the art. Build with -p:EmbedSkins=false for a code-only ~1.4 MB assembly
+       that loads art from the deployed folder instead. -->
+  <PropertyGroup>
+    <EmbedSkins Condition=" '$(EmbedSkins)' == '' ">true</EmbedSkins>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(EmbedSkins)' == 'true' ">
+    <EmbeddedResource Include="WeaponSkins\9007_PlasmaBat.jpg">
+      <LogicalName>WeaponSkins.9007_PlasmaBat.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9007_PlasmaBat_Icon.png">
+      <LogicalName>WeaponSkins.9007_PlasmaBat_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9008_InfernoMG.alpha.png">
+      <LogicalName>WeaponSkins.9008_InfernoMG.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9008_InfernoMG.jpg">
+      <LogicalName>WeaponSkins.9008_InfernoMG.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9008_InfernoMG_Icon.png">
+      <LogicalName>WeaponSkins.9008_InfernoMG_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9009_CryoStrike.alpha.png">
+      <LogicalName>WeaponSkins.9009_CryoStrike.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9009_CryoStrike.jpg">
+      <LogicalName>WeaponSkins.9009_CryoStrike.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9009_CryoStrike_Icon.png">
+      <LogicalName>WeaponSkins.9009_CryoStrike_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9010_SolarCannon.alpha.png">
+      <LogicalName>WeaponSkins.9010_SolarCannon.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9010_SolarCannon.jpg">
+      <LogicalName>WeaponSkins.9010_SolarCannon.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9010_SolarCannon_Icon.png">
+      <LogicalName>WeaponSkins.9010_SolarCannon_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9011_NaturalShotgun.alpha.png">
+      <LogicalName>WeaponSkins.9011_NaturalShotgun.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9011_NaturalShotgun.jpg">
+      <LogicalName>WeaponSkins.9011_NaturalShotgun.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9011_NaturalShotgun_Icon.png">
+      <LogicalName>WeaponSkins.9011_NaturalShotgun_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9012_VoidAmethyst.alpha.png">
+      <LogicalName>WeaponSkins.9012_VoidAmethyst.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9012_VoidAmethyst.jpg">
+      <LogicalName>WeaponSkins.9012_VoidAmethyst.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9012_VoidAmethyst_Icon.png">
+      <LogicalName>WeaponSkins.9012_VoidAmethyst_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9013_Bloodhound.alpha.png">
+      <LogicalName>WeaponSkins.9013_Bloodhound.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9013_Bloodhound.jpg">
+      <LogicalName>WeaponSkins.9013_Bloodhound.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9013_Bloodhound_Icon.png">
+      <LogicalName>WeaponSkins.9013_Bloodhound_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9014_AbyssalLeviathan.alpha.png">
+      <LogicalName>WeaponSkins.9014_AbyssalLeviathan.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9014_AbyssalLeviathan.jpg">
+      <LogicalName>WeaponSkins.9014_AbyssalLeviathan.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9014_AbyssalLeviathan_Icon.png">
+      <LogicalName>WeaponSkins.9014_AbyssalLeviathan_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9015_NeonCircuit.alpha.png">
+      <LogicalName>WeaponSkins.9015_NeonCircuit.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9015_NeonCircuit.jpg">
+      <LogicalName>WeaponSkins.9015_NeonCircuit.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9015_NeonCircuit_Icon.png">
+      <LogicalName>WeaponSkins.9015_NeonCircuit_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9016_CrimsonDragon.alpha.png">
+      <LogicalName>WeaponSkins.9016_CrimsonDragon.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9016_CrimsonDragon.jpg">
+      <LogicalName>WeaponSkins.9016_CrimsonDragon.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9016_CrimsonDragon_Icon.png">
+      <LogicalName>WeaponSkins.9016_CrimsonDragon_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9017_Frostbound.alpha.png">
+      <LogicalName>WeaponSkins.9017_Frostbound.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9017_Frostbound.jpg">
+      <LogicalName>WeaponSkins.9017_Frostbound.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9017_Frostbound_Flames.png">
+      <LogicalName>WeaponSkins.9017_Frostbound_Flames.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9017_Frostbound_Icon.png">
+      <LogicalName>WeaponSkins.9017_Frostbound_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9018_Frostfire_Icon.png">
+      <LogicalName>WeaponSkins.9018_Frostfire_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9019_Bloodglass.alpha.png">
+      <LogicalName>WeaponSkins.9019_Bloodglass.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9019_Bloodglass.jpg">
+      <LogicalName>WeaponSkins.9019_Bloodglass.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9019_Bloodglass_Icon.png">
+      <LogicalName>WeaponSkins.9019_Bloodglass_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9020_Permafrost.alpha.png">
+      <LogicalName>WeaponSkins.9020_Permafrost.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9020_Permafrost.jpg">
+      <LogicalName>WeaponSkins.9020_Permafrost.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9020_Permafrost_Icon.png">
+      <LogicalName>WeaponSkins.9020_Permafrost_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9021_Icebreaker.alpha.png">
+      <LogicalName>WeaponSkins.9021_Icebreaker.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9021_Icebreaker.jpg">
+      <LogicalName>WeaponSkins.9021_Icebreaker.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9021_Icebreaker_Icon.png">
+      <LogicalName>WeaponSkins.9021_Icebreaker_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9022_MGWatery.alpha.png">
+      <LogicalName>WeaponSkins.9022_MGWatery.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9022_MGWatery.jpg">
+      <LogicalName>WeaponSkins.9022_MGWatery.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9022_MGWatery_Icon.png">
+      <LogicalName>WeaponSkins.9022_MGWatery_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9023_SniperWatery.alpha.png">
+      <LogicalName>WeaponSkins.9023_SniperWatery.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9023_SniperWatery.jpg">
+      <LogicalName>WeaponSkins.9023_SniperWatery.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9023_SniperWatery_Icon.png">
+      <LogicalName>WeaponSkins.9023_SniperWatery_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9024_ShotgunWatery.alpha.png">
+      <LogicalName>WeaponSkins.9024_ShotgunWatery.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9024_ShotgunWatery.jpg">
+      <LogicalName>WeaponSkins.9024_ShotgunWatery.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9024_ShotgunWatery_Icon.png">
+      <LogicalName>WeaponSkins.9024_ShotgunWatery_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9025_CannonWatery.alpha.png">
+      <LogicalName>WeaponSkins.9025_CannonWatery.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9025_CannonWatery.jpg">
+      <LogicalName>WeaponSkins.9025_CannonWatery.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9025_CannonWatery_Icon.png">
+      <LogicalName>WeaponSkins.9025_CannonWatery_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9026_MGFrosted.alpha.png">
+      <LogicalName>WeaponSkins.9026_MGFrosted.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9026_MGFrosted.jpg">
+      <LogicalName>WeaponSkins.9026_MGFrosted.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9026_MGFrosted_Icon.png">
+      <LogicalName>WeaponSkins.9026_MGFrosted_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9027_SniperFrosted.alpha.png">
+      <LogicalName>WeaponSkins.9027_SniperFrosted.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9027_SniperFrosted.jpg">
+      <LogicalName>WeaponSkins.9027_SniperFrosted.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9027_SniperFrosted_Icon.png">
+      <LogicalName>WeaponSkins.9027_SniperFrosted_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9028_ShotgunFrosted.alpha.png">
+      <LogicalName>WeaponSkins.9028_ShotgunFrosted.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9028_ShotgunFrosted.jpg">
+      <LogicalName>WeaponSkins.9028_ShotgunFrosted.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9028_ShotgunFrosted_Icon.png">
+      <LogicalName>WeaponSkins.9028_ShotgunFrosted_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9029_CannonFrosted.alpha.png">
+      <LogicalName>WeaponSkins.9029_CannonFrosted.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9029_CannonFrosted.jpg">
+      <LogicalName>WeaponSkins.9029_CannonFrosted.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9029_CannonFrosted_Icon.png">
+      <LogicalName>WeaponSkins.9029_CannonFrosted_Icon.png</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -20,23 +20,24 @@ patch does not work", and it is exactly what happened on first integration.
 
 ---
 
-## One or two skins: compile the art in
+## The art is embedded, and a deployed file still wins
 
-Used by the Natural Shotgun release (UberClient #10, merged and working). The art becomes an
-`EmbeddedResource`, so `Assembly-CSharp.dll` is self-contained and there is **nothing to
-deploy**.
+Every skin's art ships as an `EmbeddedResource` in `Assembly-CSharp.dll`, and
+`WeaponSkinHelper.ReadSkinBytes` checks `UberStrike_Data/Skins/` **first**, falling back to the
+embedded copy. So:
 
-    base Assembly-CSharp.dll                    1.35 MB
-    + 9011 as JPEG colour + lossless PNG mask   2.99 MB total
+  * **Clone, compile, run** works with no deployment step. This is what #10 did for one skin and
+    what #8 now does for all of them. Shipping the DLL alone was the whole of "all skins PR
+    doesn't work" -- the code arrived, the art did not, and the failure is silent.
+  * **The patcher path is unchanged.** A deployed loose file overrides the embedded copy, so art
+    can still be updated without re-shipping code.
 
-Cost was measured before choosing it. For comparison the game's own `AK47_C.png` is 1.88 MB and
-`AWP_Camo` 2.25 MB, both single 1024² textures — a whole embedded skin is smaller than one
-stock texture.
+    default build              28.41 MB   67 embedded resources
+    -p:EmbedSkins=false         1.36 MB   code only, loads from the deployed folder
 
-**This does not scale.** The full set is 27.0 MB across 67 files; embedding it would take the
-assembly to ~28 MB.
-
----
+The size is the reason this was removed once before: a plain resource list took the assembly to
+50 MB and every code-only fix re-shipped the art. `-p:EmbedSkins=false` answers that without
+taking the working default away from anyone who just wants to build and play.
 
 ## The full set: deploy as game files
 

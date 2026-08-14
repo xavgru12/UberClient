@@ -33,6 +33,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using UnityEngine;
 
 public static class WeaponSkinHelper
@@ -427,6 +428,9 @@ public static class WeaponSkinHelper
 	/// </summary>
 	public const string SkinFolder = "Skins";
 
+	/// <summary>Prefix for the embedded resource names, set via LogicalName in the csproj.</summary>
+	private const string ResourcePrefix = "WeaponSkins.";
+
 	/// <summary>Absolute path of a skin file, for logging and for the patcher's manifest.</summary>
 	public static string SkinPath(string fileName)
 	{
@@ -434,19 +438,99 @@ public static class WeaponSkinHelper
 		return Path.Combine(Path.Combine(Application.dataPath, SkinFolder), fileName);
 	}
 
+	// ------------------------------------------------------------------ byte sources
+
 	/// <summary>
-	/// Load a skin texture from disk.
+	/// Read a skin file: loose file on disk first, then the copy embedded in this assembly.
+	/// Returns null if neither exists.
 	///
-	/// These used to be EmbeddedResources compiled into this assembly, which took
-	/// Assembly-CSharp.dll from 1.4 MB to 51 MB - 97 percent of the file was PNG. Nothing
-	/// else in UberStrike ships that way: the game has 1,228 textures and 1.4 GB of art,
-	/// none of it in a managed assembly. Loading from disk puts the assembly back to its
-	/// normal size and lets the patcher update art without re-shipping code, and vice versa.
+	/// Both paths are needed and they are not redundant.
+	///
+	/// The embedded copy is what makes "clone, compile, run" work with no deployment step.
+	/// Shipping only the DLL was the defect behind "all skins PR doesn't work": the code
+	/// landed, the art did not, and a missing skin file is SILENT - the weapon simply renders
+	/// stock, which is indistinguishable from the patch not working at all.
+	///
+	/// The disk override still wins when present, which is what keeps the patcher useful:
+	/// art can be updated without re-shipping code, and Deploy-WeaponSkins.ps1 keeps working
+	/// exactly as before. It also means a build with the resources stripped
+	/// (-p:EmbedSkins=false) is still fully functional against a deployed Skins folder.
+	/// </summary>
+	private static byte[] ReadSkinBytes(string fileName)
+	{
+		string disk = SkinPath(fileName);
+		if (File.Exists(disk))
+		{
+			try
+			{
+				return File.ReadAllBytes(disk);
+			}
+			catch (Exception e)
+			{
+				// Fall through to the embedded copy rather than failing: a half-written or
+				// locked override should not break the skin.
+				Debug.LogWarning("WeaponSkinHelper: could not read override " + disk
+					+ " (" + e.Message + "); using the embedded copy.");
+			}
+		}
+		return ReadEmbedded(fileName);
+	}
+
+	private static byte[] ReadEmbedded(string fileName)
+	{
+		string resource = ResourcePrefix + fileName;
+		try
+		{
+			Assembly asm = Assembly.GetExecutingAssembly();
+			using (Stream s = asm.GetManifestResourceStream(resource))
+			{
+				if (s == null)
+					return null;
+
+				// Read in a loop rather than one Read call: Stream.Read is permitted to return
+				// fewer bytes than asked for, and Stream.CopyTo does not exist on the .NET 3.5
+				// profile this client compiles against.
+				byte[] buffer = new byte[s.Length];
+				int read = 0;
+				while (read < buffer.Length)
+				{
+					int n = s.Read(buffer, read, buffer.Length - read);
+					if (n <= 0)
+						break;
+					read += n;
+				}
+				if (read != buffer.Length)
+				{
+					Debug.LogError("WeaponSkinHelper: short read on embedded " + resource
+						+ " (" + read + " of " + buffer.Length + " bytes)");
+					return null;
+				}
+				return buffer;
+			}
+		}
+		catch (Exception e)
+		{
+			Debug.LogError("WeaponSkinHelper: could not read embedded " + resource + ": " + e.Message);
+			return null;
+		}
+	}
+
+	/// <summary>
+	/// Load a skin texture, from a loose file if one is deployed and from the embedded copy
+	/// otherwise. See ReadSkinBytes for why both exist.
+	///
+	/// The art was embedded once before and removed, because a plain EmbeddedResource list took
+	/// Assembly-CSharp.dll from 1.4 MB to 51 MB - 97 percent of the file was PNG - so every
+	/// code-only fix re-shipped 50 MB of art. That objection is answered here by the
+	/// EmbedSkins property rather than by dropping the resources: build with
+	/// -p:EmbedSkins=false and the assembly is code-only at ~1.4 MB, loading art from the
+	/// deployed Skins folder exactly as before. The default build embeds, so a fresh clone
+	/// compiles and runs with skins visible and no deployment step.
 	///
 	/// Texture2D.LoadImage handles PNG and JPEG on this client (Unity 4.6.5), and produces
 	/// a texture with mipmaps disabled, matching the previous embedded behaviour exactly.
 	/// </summary>
-	private static Texture2D LoadFromDisk(string fileName)
+	private static Texture2D LoadSkinFile(string fileName)
 	{
 		// Preferred layout: colour as JPEG, specular mask as a separate lossless PNG.
 		//
@@ -463,18 +547,21 @@ public static class WeaponSkinHelper
 		// Falls back to a single RGBA PNG when no pair is present, so both layouts work
 		// and a skin can be switched over one at a time.
 		string stem = Path.GetFileNameWithoutExtension(fileName);
-		string jpeg = SkinPath(stem + ".jpg");
-		string mask = SkinPath(stem + ".alpha.png");
+		string jpegName = stem + ".jpg";
+		string maskName = stem + ".alpha.png";
 
-		if (File.Exists(jpeg))
+		byte[] colourBytes = ReadSkinBytes(jpegName);
+		if (colourBytes != null)
 		{
-			Texture2D colour = LoadImageFile(jpeg);
+			Texture2D colour = DecodeTexture(colourBytes, jpegName);
 			if (colour == null)
 				return null;
-			if (!File.Exists(mask))
+
+			byte[] maskBytes = ReadSkinBytes(maskName);
+			if (maskBytes == null)
 				return colour; // colour-only skin, e.g. one with no specular mask
 
-			Texture2D maskTex = LoadImageFile(mask);
+			Texture2D maskTex = DecodeTexture(maskBytes, maskName);
 			if (maskTex == null)
 				return colour;
 
@@ -505,32 +592,25 @@ public static class WeaponSkinHelper
 			return merged;
 		}
 
-		return LoadImageFile(SkinPath(fileName));
+		byte[] single = ReadSkinBytes(fileName);
+		if (single == null)
+		{
+			Debug.LogError("WeaponSkinHelper: skin file not found on disk (" + SkinPath(fileName)
+				+ ") and not embedded as \"" + ResourcePrefix + fileName + "\"");
+			return null;
+		}
+		return DecodeTexture(single, fileName);
 	}
 
-	private static Texture2D LoadImageFile(string path)
+	private static Texture2D DecodeTexture(byte[] data, string label)
 	{
-		if (!File.Exists(path))
-		{
-			Debug.LogError("WeaponSkinHelper: skin file not found: " + path);
+		if (data == null)
 			return null;
-		}
-
-		byte[] data;
-		try
-		{
-			data = File.ReadAllBytes(path);
-		}
-		catch (Exception e)
-		{
-			Debug.LogError("WeaponSkinHelper: could not read " + path + ": " + e.Message);
-			return null;
-		}
 
 		Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
 		if (!tex.LoadImage(data))
 		{
-			Debug.LogError("WeaponSkinHelper: Texture2D.LoadImage failed for " + path);
+			Debug.LogError("WeaponSkinHelper: Texture2D.LoadImage failed for " + label);
 			return null;
 		}
 		return tex;
@@ -546,7 +626,7 @@ public static class WeaponSkinHelper
 		if (!SkinTextures.TryGetValue(itemId, out resourceName))
 			return null; // not one of our skins
 
-		Texture2D tex = LoadFromDisk(resourceName);
+		Texture2D tex = LoadSkinFile(resourceName);
 		if (tex != null)
 			_skinCache[itemId] = tex;
 		return tex;
@@ -562,7 +642,7 @@ public static class WeaponSkinHelper
 		if (!IconTextures.TryGetValue(itemId, out resourceName))
 			return null;
 
-		Texture2D tex = LoadFromDisk(resourceName);
+		Texture2D tex = LoadSkinFile(resourceName);
 		if (tex != null)
 			_iconCache[itemId] = tex;
 		return tex;
@@ -711,7 +791,7 @@ public static class WeaponSkinHelper
 		if (!SkinFlames.TryGetValue(itemId, out sheet))
 			return;
 
-		Texture2D flame = LoadFromDisk(sheet);
+		Texture2D flame = LoadSkinFile(sheet);
 		if (flame == null)
 			return;
 		flame.wrapMode = TextureWrapMode.Repeat;   // it scrolls, so it must tile
