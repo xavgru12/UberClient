@@ -211,6 +211,61 @@ public static class WeaponSkinHelper
 		{ 9029, FlameMode.Surface },
 	};
 
+	// ---------------------------------------------------------------- the water shader
+	//
+	// The game's OWN flowing-water shader, used by the [Watery] set. Everything below was read
+	// out of the shipped client rather than guessed, because a wrong name here fails silently:
+	// Shader.Find returns null and the skin renders opaque with no error.
+	//
+	// Verified in the SHIPPED build, not in the source project:
+	//   * shader text lives in UberStrike_Data/resources.assets at byte offset 307673488,
+	//     length 61657, and its first line is Shader "CMune/Water/Opaque_Flowing".
+	//   * that name occurs exactly ONCE in resources.assets, and a scan for "CMune/Water/*"
+	//     returns no siblings -- so there is no second water shader to fall back to.
+	//
+	// Its Properties block, verbatim from that blob:
+	//   _MainTex        ("Base (RGB) Gloss (A)", 2D)   = "white"
+	//   _BumpMap        ("Normalmap", 2D)              = "bump"
+	//   _Caustics       ("_Caustics", 2D)              = "black"
+	//   _Cube           ("Reflection Cubemap", CUBE)   = "black"
+	//   _Color          ("Main Color", Color)          = (0, 0.313726, 0.65098, 1)
+	//   _WaterColor_Dark("Dark Water Color", Color)    = (1, 1, 1, 1)
+	//   _ReflectColor   ("Reflection Color", Color)    = (0.72549, 0.992157, 1, 0.501961)
+	//   _Specular ("_Specular", Float) = 2   _Gloss ("_Gloss", Float) = 1   _Tiling = 1.5
+	//
+	// A BARE SHADER BIND IS NOT ENOUGH, and this is the note that must survive: binding the
+	// shader without assigning textures gives _Caustics = "black", so the caustics term
+	// multiplies out to ZERO and the weapon has no caustics at all, while _Cube = "black"
+	// collapses the cubemap lerp and _WaterColor_Dark defaults to WHITE water. Nothing errors;
+	// it just renders wrong. That is the Bloodglass failure repeating -- see the 9019 note in
+	// SkinShaders, where an unassigned _Cube sampled WHITE and turned a red blade grey-pink.
+	// So SkinMaterialBindings below is load-bearing. Do not "simplify" those assignments away.
+	//
+	// The motion is free. The compiled program scrolls _MainTex at 0.050000001 and _BumpMap at
+	// 0.07 off the shader's own time input, so the water flows with NO MonoBehaviour driving it
+	// -- unlike the flame overlay, which needs WeaponFlameAnimator.
+	public const string WaterShader = "CMune/Water/Opaque_Flowing";
+
+	// Resources paths for the water assets, in the LOWERCASE form the build's index actually
+	// stores. This client keeps its Resources index in UberStrike_Data/mainData, and every
+	// entry there is lowercased even where the file on disk is mixed case -- e.g. the file is
+	// Water_A_NM.png but the index reads "items/shared/textures/water_a_nm".
+	//
+	// Lowercase is used here because it is the strictly SAFER of the two spellings: if Unity
+	// lowercases the query before lookup, a lowercase path is unchanged and matches; if it does
+	// NOT, a lowercase path still matches the lowercase index while a mixed-case one would miss.
+	// Mixed case is only safe under the first assumption, so it is not worth the risk.
+	//
+	// All five confirmed present in mainData's index (one hit each):
+	//   items/shared/textures/water_a_nm      items/shared/textures/water_b_nm
+	//   items/shared/textures/caustics_a_dm   items/shared/cubemaps/studio_a
+	//   items/shared/shaders/water_flowing_a
+	private const string WaterMainTexPath  = "items/shared/textures/water_a_nm";
+	private const string WaterBumpMapPath  = "items/shared/textures/water_b_nm";
+	private const string WaterCausticsPath = "items/shared/textures/caustics_a_dm";
+	private const string WaterCubePath     = "items/shared/cubemaps/studio_a";
+	private const string WaterShaderPath   = "items/shared/shaders/water_flowing_a";
+
 	/// <summary>
 	/// Optional per-skin SHADER override, in preference order, with the first one that
 	/// resolves winning.
@@ -247,13 +302,205 @@ public static class WeaponSkinHelper
 		{ 9019, new string[] { "Transparent/Diffuse" } },
 		{ 9020, new string[] { "Unique/Transparent/Glass-Hangar", "Transparent/Diffuse" } },
 		{ 9021, new string[] { "Unique/Transparent/Glass-Hangar", "Transparent/Diffuse" } },
-		// 9022-9025 (the glacier set) are deliberately ABSENT: they keep the stock opaque
-		// shader. Shipped once with Glass-Hangar and every one of them rendered HOLLOW --
-		// bright ice edges visible and the body see-through to the wall behind. Alpha-blended
-		// geometry does not write depth, so overlapping faces of one mesh sort arbitrarily.
-		// A katana blade is a single thin shape and survives that; a machine gun is dozens of
-		// overlapping parts and does not. Their alpha carries GLOSS for Bumped Specular
-		// instead, which is what gives frozen water its hard wet highlight.
+		// 9022-9025, the [Watery] set, bind the game's OWN water shader.
+		//
+		// This REPLACES their painted art, knowingly. _MainTex on this shader is not albedo --
+		// the shipped materials put a NORMAL MAP in that slot (see SkinMaterialBindings) -- so
+		// the glacier paint these four ship with is not sampled at all. They come out looking
+		// like cut-crystal/ice weapons. That is the intended result, not a defect to fix.
+		//
+		// OPAQUE is what makes this safe here where Glass-Hangar was not. These four shipped
+		// once with Glass-Hangar and every one of them rendered HOLLOW -- bright ice edges with
+		// the body see-through to the wall behind -- because alpha-blended geometry does not
+		// write depth, so the overlapping faces of one mesh sort arbitrarily. A katana blade is
+		// a single thin shape and survives that; a machine gun is dozens of overlapping parts
+		// and does not. This shader is tagged "RenderType" = "Opaque" in the shipped text, so
+		// it writes depth and the hollow failure cannot recur.
+		//
+		// ONE name, not a chain to some other shader, and that is deliberate. There is exactly
+		// one CMune/Water/* shader in the build, so any second NAME here would be a different
+		// look entirely -- and worse, it would silently no-op every water binding below, which
+		// is precisely the half-state this whole change exists to prevent. The genuine second
+		// route is by Resources PATH to the SAME shader, in SkinShaderResources.
+		{ 9022, new string[] { WaterShader } },
+		{ 9023, new string[] { WaterShader } },
+		{ 9024, new string[] { WaterShader } },
+		{ 9025, new string[] { WaterShader } },
+	};
+
+	/// <summary>
+	/// Second route to a skin's shader, by Resources path, tried ONLY after every name in
+	/// SkinShaders has failed Shader.Find.
+	///
+	/// Not redundant with the name chain, and not a different look. Shader.Find only returns
+	/// shaders that made it into the build, and this one is reachable BOTH ways: its text is in
+	/// resources.assets, and the build's Resources index lists "items/shared/shaders/
+	/// water_flowing_a". Being in Resources is also why it is certain to have survived shader
+	/// stripping at all -- unlike Glass-Hangar, which no item material references and which the
+	/// 9019 note above had to hedge against.
+	///
+	/// So this reaches the IDENTICAL asset by a second mechanism, which is the only kind of
+	/// fallback worth having when the alternative would silently change what the skin looks like.
+	/// </summary>
+	public static readonly Dictionary<int, string> SkinShaderResources = new Dictionary<int, string>
+	{
+		{ 9022, WaterShaderPath },
+		{ 9023, WaterShaderPath },
+		{ 9024, WaterShaderPath },
+		{ 9025, WaterShaderPath },
+	};
+
+	// ------------------------------------------------- extra per-skin material bindings
+
+	/// <summary>
+	/// One texture to assign after the shader swap. <c>IsCubemap</c> is not cosmetic: a cubemap
+	/// is NOT a Texture2D, so Resources.Load&lt;Texture2D&gt; on one returns NULL and the
+	/// property would end up unassigned -- the exact silent half-state this file keeps hitting.
+	/// </summary>
+	public struct TextureBinding
+	{
+		public string Property;
+		public string ResourcePath;
+		public bool IsCubemap;
+
+		public TextureBinding(string property, string resourcePath, bool isCubemap)
+		{
+			Property = property;
+			ResourcePath = resourcePath;
+			IsCubemap = isCubemap;
+		}
+	}
+
+	public struct ColorBinding
+	{
+		public string Property;
+		public Color Value;
+
+		public ColorBinding(string property, Color value)
+		{
+			Property = property;
+			Value = value;
+		}
+	}
+
+	public struct FloatBinding
+	{
+		public string Property;
+		public float Value;
+
+		public FloatBinding(string property, float value)
+		{
+			Property = property;
+			Value = value;
+		}
+	}
+
+	/// <summary>
+	/// Everything a skin needs assigned onto its material AFTER the shader is bound.
+	///
+	/// This did not exist before: ApplyToWeapon only ever set _MainTex, which is all a
+	/// re-texture on the stock Bumped Specular shader needs. A shader with ten more properties
+	/// needs all of them, and leaving any one unset is silent -- it takes the value from the
+	/// shader's Properties block and renders something plausible but wrong.
+	/// </summary>
+	public class MaterialBindings
+	{
+		public TextureBinding[] Textures;
+		public ColorBinding[] Colors;
+		public FloatBinding[] Floats;
+	}
+
+	/// <summary>
+	/// The [Watery] material, copied from the two materials that ALREADY ship with this shader
+	/// rather than invented:
+	///
+	///   Resources/items/weapons/splattergun_manowar/res/res/SpatterGun_ManOWar_Water_A.mat
+	///   Resources/items/gear/holo_hydra/res/res/Holo_Hydra.mat
+	///
+	/// Both bind the same four textures by GUID, resolved through their .meta files:
+	///   _MainTex  010e39f5b75d51b479ea93966b1a5091 -> items/shared/textures/Water_A_NM.png
+	///   _BumpMap  f951481b5ecdcba42b9582f464c29b11 -> items/shared/textures/Water_B_NM.png
+	///   _Caustics fd207a9c99c672249975c3b055ede01a -> items/shared/textures/Caustics_A_DM.png
+	///   _Cube     b63410db318971340a5fb77d191c6193 -> items/shared/cubemaps/Studio_A.png
+	///
+	/// Note _MainTex is a NORMAL MAP (Water_A_NM), not colour. That is not a mistake in the
+	/// shipped materials -- it is how this shader works, and it is why binding it replaces the
+	/// painted art instead of tinting it.
+	///
+	/// COLOURS COME FROM THE WEAPON MATERIAL, NOT FROM THE SHADER DEFAULTS, and the difference
+	/// is large enough to matter:
+	///   _WaterColor_Dark  shipped (0, 0.153, 0.478)  vs  shader default (1, 1, 1) -- the
+	///                     default is WHITE water, i.e. no dark tone at all.
+	///   _Color            shipped (0, 0.439, 1)      vs  default (0, 0.314, 0.651)
+	///   _ReflectColor     shipped (0.420, 0.839, 1, 0.502) vs default (0.725, 0.992, 1, 0.502)
+	/// </summary>
+	private static readonly MaterialBindings WaterBindings = new MaterialBindings
+	{
+		Textures = new TextureBinding[]
+		{
+			new TextureBinding("_MainTex",  WaterMainTexPath,  false),
+			new TextureBinding("_BumpMap",  WaterBumpMapPath,  false),
+			new TextureBinding("_Caustics", WaterCausticsPath, false),
+			// CUBE, not 2D. Studio_A.png imports with textureType 5 / generateCubemap 5 and its
+			// .meta recycles fileID 8900000 as "generatedCubemap", so the asset Resources.Load
+			// returns is a Cubemap. Asking for a Texture2D here gets null and _Cube stays at
+			// "black", which collapses the reflection lerp -- silently.
+			new TextureBinding("_Cube",     WaterCubePath,     true),
+		},
+
+		Colors = new ColorBinding[]
+		{
+			// Straight from SpatterGun_ManOWar_Water_A.mat, the WEAPON material.
+			new ColorBinding("_Color",           new Color(0f, 0.4392157f, 1f, 1f)),
+			new ColorBinding("_WaterColor_Dark", new Color(0f, 0.15294118f, 0.47843137f, 1f)),
+			// This one must also survive the force-set further down -- see ApplyShaderOverride.
+			new ColorBinding("_ReflectColor",    new Color(0.41960785f, 0.8392157f, 1f, 0.5019608f)),
+		},
+
+		Floats = new FloatBinding[]
+		{
+			// _Tiling 0.5 is SpatterGun_ManOWar_Water_A's value; Holo_Hydra uses 1.5. Taking the
+			// weapon's number deliberately: 1.5 is authored against a character model's UVs and
+			// 0.5 against a gun's, and 0.5 vs 1.5 is a 3x UV-scale difference, so it visibly
+			// changes the size of the water's features on a weapon. These four skins are guns.
+			new FloatBinding("_Tiling",   0.5f),
+			// _Gloss 1.0 / _Specular 2.0, again the weapon's values. Holo_Hydra runs _Gloss 0.9.
+			// The compiled program raises the specular exponent to 128 * _Gloss, so 1.0 is the
+			// tightest, hardest highlight the shader offers -- which is what reads as wet.
+			new FloatBinding("_Gloss",    1.0f),
+			new FloatBinding("_Specular", 2.0f),
+
+			// THESE TWO ARE NOT IN THE SHIPPED SHADER, and that is a measured finding, not a
+			// guess: a scan of all 61657 bytes of the shader blob returns ZERO occurrences of
+			// either name, while every real property (_Tiling, _Gloss, _Cube, ...) occurs 5-16
+			// times. The caustics tiling is folded into the compiled code as the literal 3.375
+			// (= 1.5 * 2.25) instead of being a uniform.
+			//
+			// They survive in Holo_Hydra.mat only as stale authoring-time leftovers -- Unity
+			// keeps serialised properties a shader no longer declares. Kept here so the table
+			// is a complete record of the authored material, and so that if this shader is ever
+			// replaced by the authoring version they light up on their own. The HasProperty
+			// guard in ApplyMaterialBindings skips them and says so ONCE, at Log rather than
+			// LogWarning: a property the shader does not declare is expected here, and must not
+			// be confused with an asset that failed to load, which is fatal.
+			new FloatBinding("_CausticsTiling", 2.25f),
+			new FloatBinding("_CausticsDeform", 0.1f),
+		},
+	};
+
+	/// <summary>
+	/// Per-skin material bindings, applied after the shader override binds.
+	///
+	/// All four [Watery] skins share ONE instance rather than four copies: they differ only in
+	/// which weapon they sit on, and four copies of the same numbers would only be four things
+	/// to keep in sync -- the same reasoning as 9018 sharing 9017's texture.
+	/// </summary>
+	public static readonly Dictionary<int, MaterialBindings> SkinMaterialBindings = new Dictionary<int, MaterialBindings>
+	{
+		{ 9022, WaterBindings },
+		{ 9023, WaterBindings },
+		{ 9024, WaterBindings },
+		{ 9025, WaterBindings },
 	};
 
 	/// <summary>
@@ -676,8 +923,18 @@ public static class WeaponSkinHelper
 		// a skin registered, so an item could have one without the other.
 		ApplyTracer(weaponRoot, itemId);
 
+		// A skin qualifies if it has painted art OR a material-bindings table. The second half
+		// exists for the [Watery] set: they bind the water shader, whose _MainTex is a normal
+		// map from Resources, so they never sample their painted PNG at all.
+		//
+		// Without this they would be hostage to art they do not use -- a missing 9022_MGWatery
+		// PNG would return null here, this method would return before ApplyShaderOverride ever
+		// ran, and the weapon would render STOCK with the water bind never attempted. That is
+		// the same silent failure as "the code landed, the art did not" in LoadSkinFile's note,
+		// and it would be especially misleading here because the art is not the point.
 		Texture2D tex = GetSkinTexture(itemId);
-		if (tex == null)
+		bool hasBindings = SkinMaterialBindings.ContainsKey(itemId);
+		if (tex == null && !hasBindings)
 			return; // not one of our skins, leave the weapon alone
 
 		Renderer[] renderers = weaponRoot.GetComponentsInChildren<Renderer>(true);
@@ -722,9 +979,14 @@ public static class WeaponSkinHelper
 			if (r.material == null)
 				continue;
 
-			r.material.mainTexture = tex;
-			if (r.material.HasProperty("_MainTex"))
-				r.material.SetTexture("_MainTex", tex);
+			// Guarded only for the bindings-without-art case above. For all 18 painted skins
+			// tex is non-null and this is byte-for-byte the behaviour it always had.
+			if (tex != null)
+			{
+				r.material.mainTexture = tex;
+				if (r.material.HasProperty("_MainTex"))
+					r.material.SetTexture("_MainTex", tex);
+			}
 
 			ApplyShaderOverride(r, itemId);
 		}
@@ -733,7 +995,7 @@ public static class WeaponSkinHelper
 	}
 
 	/// <summary>
-	/// Swap this renderer's shader, for skins that need to be something other than opaque.
+	/// Swap this renderer's shader, and assign whatever material state the new shader needs.
 	///
 	/// Renderer.material is already a per-instance copy, so assigning a shader here does not
 	/// touch the shared material and cannot leak onto another player's weapon.
@@ -742,21 +1004,99 @@ public static class WeaponSkinHelper
 	/// Shader.Find only finds shaders that actually made it into the build. A shader no
 	/// material references may have been stripped, and the failure is silent: the skin would
 	/// simply render opaque with no error. Logged so it is visible which one bound.
+	///
+	/// "Something other than opaque" was the original purpose and is no longer the whole of it.
+	/// The [Watery] set binds an OPAQUE shader -- what those skins need is not transparency but
+	/// a shader with ten properties instead of one, which is why SkinMaterialBindings and the
+	/// preflight below exist.
 	/// </summary>
 	private static void ApplyShaderOverride(Renderer r, int itemId)
 	{
 		string[] candidates;
-		if (!SkinShaders.TryGetValue(itemId, out candidates) || candidates == null)
-			return;
+		if (!SkinShaders.TryGetValue(itemId, out candidates) || candidates == null || candidates.Length == 0)
+			return; // Length check guards candidates[0] in the messages below -- an empty array
+			        // would otherwise throw from inside the error path, of all places.
 
+		// ---- resolve the shader, by name first and by Resources path second
+		Shader s = null;
+		string how = null;
 		for (int i = 0; i < candidates.Length; i++)
 		{
-			Shader s = Shader.Find(candidates[i]);
-			if (s == null)
-				continue;
+			s = Shader.Find(candidates[i]);
+			if (s != null)
+			{
+				how = "Shader.Find('" + candidates[i] + "')"
+					+ (i > 0 ? " (fell back; '" + candidates[0] + "' is not in this build)" : "");
+				break;
+			}
+		}
 
-			r.material.shader = s;
+		string shaderPath;
+		if (s == null && SkinShaderResources.TryGetValue(itemId, out shaderPath) && !string.IsNullOrEmpty(shaderPath))
+		{
+			s = Resources.Load(shaderPath, typeof(Shader)) as Shader;
+			if (s != null)
+				how = "Resources.Load('" + shaderPath + "') -- Shader.Find missed '" + candidates[0] + "'";
+		}
 
+		if (s == null)
+		{
+			// LogError, not LogWarning. The old code warned here and let the weapon render
+			// opaque, which is survivable for a glass katana but not for a skin whose ENTIRE
+			// appearance is the shader.
+			Debug.LogError("WeaponSkinHelper: skin " + itemId + " found NONE of its shaders in "
+				+ "this build (tried Shader.Find on '" + string.Join("', '", candidates) + "'"
+				+ (SkinShaderResources.ContainsKey(itemId)
+					? " then Resources.Load on '" + SkinShaderResources[itemId] + "'" : "")
+				+ "). Leaving the renderer on its previous material.");
+			return;
+		}
+
+		// ---- PREFLIGHT the textures BEFORE touching the shader.
+		//
+		// Order is the whole point. Once r.material.shader is assigned, the renderer is
+		// committed: a texture that fails to load after that leaves the property at its
+		// Properties-block default -- _Caustics "black" means NO CAUSTICS, _Cube "black"
+		// collapses the reflection -- and the weapon draws a plausible-looking half-state with
+		// nothing in the log. Resolving everything first means a failure costs the skin its
+		// shader swap and leaves the stock material intact, which is visibly "not applied"
+		// rather than "applied wrong".
+		MaterialBindings bind;
+		if (!SkinMaterialBindings.TryGetValue(itemId, out bind))
+			bind = null;
+
+		Texture[] resolved = null;
+		if (bind != null && bind.Textures != null)
+		{
+			resolved = new Texture[bind.Textures.Length];
+			for (int i = 0; i < bind.Textures.Length; i++)
+			{
+				TextureBinding tb = bind.Textures[i];
+				Texture t = LoadResourceTexture(tb);
+				if (t == null)
+				{
+					// Names the PROPERTY and the PATH. "A texture failed to load" is not
+					// actionable; "_Cube could not be loaded from items/shared/cubemaps/studio_a
+					// as a Cubemap" is.
+					Debug.LogError("WeaponSkinHelper: skin " + itemId + " NOT applied -- could not bind "
+						+ tb.Property + " from Resources path '" + tb.ResourcePath + "' as a "
+						+ (tb.IsCubemap ? "Cubemap" : "Texture2D") + ". Refusing to bind '"
+						+ s.name + "' with " + tb.Property + " unassigned, because that renders "
+						+ "a wrong-but-plausible weapon instead of an obviously unskinned one. "
+						+ "Leaving the renderer on its previous material.");
+					return;
+				}
+				resolved[i] = t;
+			}
+		}
+
+		// ---- everything resolved; commit
+		r.material.shader = s;
+
+		if (bind != null)
+			ApplyMaterialBindings(r.material, bind, resolved, itemId);
+
+		{
 			// Glass-Hangar adds a cubemap reflection on top of the albedo:
 			//
 			//     reflcol  = texCUBE(_Cube, worldRefl) * _ReflectColor
@@ -773,7 +1113,20 @@ public static class WeaponSkinHelper
 			// see-through skin was blue. 9019 Bloodglass is red, and inheriting a cool tint
 			// laid a blue cast over the whole blade -- in game it read as a BLUE sword, which
 			// is the one thing that skin must not be.
-			if (r.material.HasProperty("_ReflectColor"))
+			//
+			// GUARDED, because this block is a DEFAULT for skins that do not author a
+			// reflection colour, and the [Watery] set does author one -- (0.420, 0.839, 1,
+			// 0.502), copied from the shipped weapon material. Left ungated it would overwrite
+			// that with the icy (0.55, 0.75, 0.95, 0.08) two lines after the bindings assigned
+			// it, and alpha 0.08 against the shipped 0.502 is a SIX-FOLD cut to the reflection
+			// term -- the water's cubemap highlight would all but disappear.
+			//
+			// The guard asks "did this skin bind _ReflectColor itself?" rather than testing the
+			// item id or reordering the two blocks. That is the least surprising mechanism of
+			// the three: an id test would need editing every time a skin is added, and relying
+			// on statement order leaves a silent trap for whoever next moves these lines. This
+			// way the rule is stated where it applies and holds for any future skin.
+			if (r.material.HasProperty("_ReflectColor") && !BindsColor(bind, "_ReflectColor"))
 			{
 				Color reflect;
 				if (!SkinReflectTints.TryGetValue(itemId, out reflect))
@@ -781,13 +1134,126 @@ public static class WeaponSkinHelper
 				r.material.SetColor("_ReflectColor", reflect);
 			}
 
-			Debug.Log("WeaponSkinHelper: skin " + itemId + " bound shader '" + candidates[i] + "'"
-				+ (i > 0 ? " (fell back; '" + candidates[0] + "' is not in this build)" : ""));
+			Debug.Log("WeaponSkinHelper: skin " + itemId + " bound shader '" + s.name
+				+ "' via " + how);
+		}
+	}
+
+	/// <summary>Did this skin's bindings table assign <paramref name="property"/> itself?</summary>
+	private static bool BindsColor(MaterialBindings bind, string property)
+	{
+		if (bind == null || bind.Colors == null)
+			return false;
+		for (int i = 0; i < bind.Colors.Length; i++)
+		{
+			if (bind.Colors[i].Property == property)
+				return true;
+		}
+		return false;
+	}
+
+	/// <summary>
+	/// Resources textures resolved once and reused. ApplyToWeapon runs ApplyShaderOverride for
+	/// EVERY renderer under the weapon -- a machine gun is dozens -- and AssignWeapon runs again
+	/// on every respawn, so without this the same four assets would be looked up hundreds of
+	/// times per match.
+	///
+	/// Failures are cached too, as null, deliberately. A missing asset is a build/deployment
+	/// fact that will not change mid-session, and the alternative is re-attempting a doomed load
+	/// once per renderer per respawn and logging the same error every time.
+	/// </summary>
+	private static readonly Dictionary<string, Texture> _resourceTexCache = new Dictionary<string, Texture>();
+
+	private static Texture LoadResourceTexture(TextureBinding tb)
+	{
+		Texture cached;
+		if (_resourceTexCache.TryGetValue(tb.ResourcePath, out cached))
+			return cached;
+
+		// typeof(Cubemap) vs typeof(Texture2D) matters -- Resources.Load type-filters, so asking
+		// for the wrong one returns null rather than converting. Both derive from Texture, which
+		// is what Material.SetTexture takes, so one cache holds either.
+		Texture t = Resources.Load(tb.ResourcePath, tb.IsCubemap ? typeof(Cubemap) : typeof(Texture2D)) as Texture;
+		_resourceTexCache[tb.ResourcePath] = t;
+		return t;
+	}
+
+	/// <summary>Properties already reported as absent, so the message is logged once, not once per renderer.</summary>
+	private static readonly Dictionary<string, bool> _reportedMissingProps = new Dictionary<string, bool>();
+
+	/// <summary>
+	/// Assign a skin's full material state after its shader is bound.
+	///
+	/// Every assignment is guarded by HasProperty, and a property the shader does not declare is
+	/// reported at Log level rather than LogError. That distinction is deliberate and is the one
+	/// thing to preserve here: "this shader has no _CausticsDeform" is an expected, harmless fact
+	/// about the shipped build (see the note in WaterBindings -- neither _CausticsTiling nor
+	/// _CausticsDeform exists in it), whereas "this texture would not load" means the weapon is
+	/// about to render wrong and is fatal. Collapsing the two would either drown the real errors
+	/// in noise or hide them.
+	/// </summary>
+	private static void ApplyMaterialBindings(Material m, MaterialBindings bind, Texture[] resolved, int itemId)
+	{
+		if (m == null || bind == null)
 			return;
+
+		if (bind.Textures != null && resolved != null)
+		{
+			for (int i = 0; i < bind.Textures.Length; i++)
+			{
+				TextureBinding tb = bind.Textures[i];
+				if (!m.HasProperty(tb.Property))
+				{
+					ReportMissingProperty(m, itemId, tb.Property, "texture '" + tb.ResourcePath + "'");
+					continue;
+				}
+				m.SetTexture(tb.Property, resolved[i]);
+			}
 		}
 
-		Debug.LogWarning("WeaponSkinHelper: skin " + itemId
-			+ " found none of its shaders in the build; it will render opaque");
+		if (bind.Colors != null)
+		{
+			for (int i = 0; i < bind.Colors.Length; i++)
+			{
+				ColorBinding cb = bind.Colors[i];
+				if (!m.HasProperty(cb.Property))
+				{
+					ReportMissingProperty(m, itemId, cb.Property, "colour " + cb.Value);
+					continue;
+				}
+				m.SetColor(cb.Property, cb.Value);
+			}
+		}
+
+		if (bind.Floats != null)
+		{
+			for (int i = 0; i < bind.Floats.Length; i++)
+			{
+				FloatBinding fb = bind.Floats[i];
+				if (!m.HasProperty(fb.Property))
+				{
+					ReportMissingProperty(m, itemId, fb.Property, "float " + fb.Value);
+					continue;
+				}
+				m.SetFloat(fb.Property, fb.Value);
+			}
+		}
+	}
+
+	private static void ReportMissingProperty(Material m, int itemId, string property, string what)
+	{
+		string shaderName = (m.shader != null ? m.shader.name : "<null shader>");
+		string key = shaderName + "|" + property;
+		if (_reportedMissingProps.ContainsKey(key))
+			return;
+		_reportedMissingProps[key] = true;
+
+		// Named, so nobody has to guess which one was skipped -- but NOT an error, because the
+		// shader simply does not expose it. Setting it would be a silent no-op; saying so is the
+		// point.
+		Debug.Log("WeaponSkinHelper: skin " + itemId + " skipped " + property + " (" + what
+			+ ") -- shader '" + shaderName + "' does not declare that property, so assigning it "
+			+ "would do nothing. The rest of the material was bound normally.");
 	}
 
 	/// <summary>
