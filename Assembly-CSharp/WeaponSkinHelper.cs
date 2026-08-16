@@ -24,6 +24,24 @@
 //   9017 Frostbound        (base 6 MythicEdge-DE)    -- see-through ice, HELIX flames
 //   9018 Frostfire         (base 6 MythicEdge-DE)    -- shares 9017's art, SURFACE flames
 //   9019 Bloodglass        (base 6 MythicEdge-DE)    -- see-through red, SURFACE flames
+//   9020 AWP [Permafrost]  (base AWP_Roughed)        -- see-through ice, NO flames (mesh not
+//                                                       CPU-readable; Instantiate was a native
+//                                                       access violation)
+//   9021 Icebreaker        (base DeathHammer)        -- see-through ice, NO flames, same reason.
+//                                                       DeathHammer is ItemClass 4, a SHOTGUN
+//                                                       with 12 projectiles -- not a warhammer.
+//   9022 MG [Watery]       (base 1002 MachineGun)
+//   9023 Sniper [Watery]   (base 1004 PaintSniper)
+//   9024 Shotgun [Watery]  (base 1003 PaintShotty)
+//   9025 Cannon [Watery]   (base 1005 Cannon)
+//   9026 MG [Frosted]      (base 1002 MachineGun)
+//   9027 Sniper [Frosted]  (base 1004 PaintSniper)
+//   9028 Shotgun [Frosted] (base 1003 PaintShotty)
+//   9029 Cannon [Frosted]  (base 1005 Cannon)
+//
+// Completed 2026-08-16 -- it had gone stale a THIRD time, stopping at 9019. Found by
+// skin_studio, which derives each skin's base weapon from this block and reported 9020/9021 as
+// having no derivable base, so the AWP and DeathHammer could not be previewed at all.
 //
 // This does NOT check ownership/equip state beyond what the game itself already enforces
 // via AssignWeapon (only ever called with an item the player has equipped in their
