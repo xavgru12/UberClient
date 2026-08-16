@@ -1013,6 +1013,18 @@
     <EmbeddedResource Include="WeaponSkins\9029_CannonFrosted_Icon.png">
       <LogicalName>WeaponSkins.9029_CannonFrosted_Icon.png</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9030_MGLava_Icon.png">
+      <LogicalName>WeaponSkins.9030_MGLava_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9031_SniperLava_Icon.png">
+      <LogicalName>WeaponSkins.9031_SniperLava_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9032_ShotgunLava_Icon.png">
+      <LogicalName>WeaponSkins.9032_ShotgunLava_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9033_CannonLava_Icon.png">
+      <LogicalName>WeaponSkins.9033_CannonLava_Icon.png</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
