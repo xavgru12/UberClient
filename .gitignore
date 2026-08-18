@@ -7,3 +7,8 @@ obj/
 
 # icon backups taken before a re-render -- kept on disk, not in the repo
 *_Icon.png.pre-water
+
+# local safety copies from the 2026-08-17/18 skin work -- never part of a build
+*.pre-glass
+*.variantB
+*.superseded

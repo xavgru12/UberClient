@@ -905,6 +905,12 @@
     <EmbeddedResource Include="WeaponSkins\9017_Frostbound.jpg">
       <LogicalName>WeaponSkins.9017_Frostbound.jpg</LogicalName>
     </EmbeddedResource>
+    <!-- The second flame sheet: two broad tongues, for the three HELIX skins (9017, 9020, 9021).
+         The one below it keeps serving the SURFACE skins (9018, 9019, 9026-9029), which is
+         exactly why this had to be a second file rather than an edit. -->
+    <EmbeddedResource Include="WeaponSkins\9017_Frostbound_BlueFlames.png">
+      <LogicalName>WeaponSkins.9017_Frostbound_BlueFlames.png</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="WeaponSkins\9017_Frostbound_Flames.png">
       <LogicalName>WeaponSkins.9017_Frostbound_Flames.png</LogicalName>
     </EmbeddedResource>
@@ -1024,6 +1030,267 @@
     </EmbeddedResource>
     <EmbeddedResource Include="WeaponSkins\9033_CannonLava_Icon.png">
       <LogicalName>WeaponSkins.9033_CannonLava_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <!-- 9034 Neon Circuit [Black]. THREE rows, as every skin with a shop icon has: the .jpg and
+         .alpha.png that LoadSkinFile recombines into the painted texture, plus the 48x48 icon.
+         This block carried only the first two for one round because the icon had not been
+         rendered; it was rendered 2026-08-17 18:58 by webgl-skins-rendering's
+         tools/render_premium_icons.py and the row was added with it. The two halves have to move
+         together: an IconTextures entry in WeaponSkinHelper.cs with no EmbeddedResource here is
+         the same silent shop fallback as no entry at all, except it also logs on every ProxyItem
+         construction, because the resource is what the running DLL actually reads. -->
+    <EmbeddedResource Include="WeaponSkins\9034_NeonCircuitBlack.alpha.png">
+      <LogicalName>WeaponSkins.9034_NeonCircuitBlack.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9034_NeonCircuitBlack.jpg">
+      <LogicalName>WeaponSkins.9034_NeonCircuitBlack.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9034_NeonCircuitBlack_Icon.png">
+      <LogicalName>WeaponSkins.9034_NeonCircuitBlack_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <!-- 9035/9036, the matte-glass variants. Icons only: they SHARE 9020/9021's painted art, so
+         there is deliberately no .jpg or .alpha.png row for either. -->
+    <EmbeddedResource Include="WeaponSkins\9035_AWPMatteGlass_Icon.png">
+      <LogicalName>WeaponSkins.9035_AWPMatteGlass_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9036_IcebreakerMatteGlass_Icon.png">
+      <LogicalName>WeaponSkins.9036_IcebreakerMatteGlass_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9038_AWPClearIce_Icon.png">
+      <LogicalName>WeaponSkins.9038_AWPClearIce_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9039_IcebreakerClearIce_Icon.png">
+      <LogicalName>WeaponSkins.9039_IcebreakerClearIce_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <!-- The [Gold] set: art + gloss mask + icon for each of the four. -->
+    <EmbeddedResource Include="WeaponSkins\9040_M4A1Gold.jpg">
+      <LogicalName>WeaponSkins.9040_M4A1Gold.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9040_M4A1Gold.alpha.png">
+      <LogicalName>WeaponSkins.9040_M4A1Gold.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9041_AK47Gold.jpg">
+      <LogicalName>WeaponSkins.9041_AK47Gold.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9041_AK47Gold.alpha.png">
+      <LogicalName>WeaponSkins.9041_AK47Gold.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9042_SPAS12Gold.jpg">
+      <LogicalName>WeaponSkins.9042_SPAS12Gold.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9042_SPAS12Gold.alpha.png">
+      <LogicalName>WeaponSkins.9042_SPAS12Gold.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9043_AWPGold.jpg">
+      <LogicalName>WeaponSkins.9043_AWPGold.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9043_AWPGold.alpha.png">
+      <LogicalName>WeaponSkins.9043_AWPGold.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9040_M4A1Gold_Icon.png">
+      <LogicalName>WeaponSkins.9040_M4A1Gold_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9041_AK47Gold_Icon.png">
+      <LogicalName>WeaponSkins.9041_AK47Gold_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9042_SPAS12Gold_Icon.png">
+      <LogicalName>WeaponSkins.9042_SPAS12Gold_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9043_AWPGold_Icon.png">
+      <LogicalName>WeaponSkins.9043_AWPGold_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <!-- The five procedural sets, 9044-9063: art + gloss mask + icon for each of 20. -->
+    <EmbeddedResource Include="WeaponSkins\9044_M4A1Chrome.jpg">
+      <LogicalName>WeaponSkins.9044_M4A1Chrome.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9044_M4A1Chrome.alpha.png">
+      <LogicalName>WeaponSkins.9044_M4A1Chrome.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9044_M4A1Chrome_Icon.png">
+      <LogicalName>WeaponSkins.9044_M4A1Chrome_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9045_AK47Chrome.jpg">
+      <LogicalName>WeaponSkins.9045_AK47Chrome.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9045_AK47Chrome.alpha.png">
+      <LogicalName>WeaponSkins.9045_AK47Chrome.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9045_AK47Chrome_Icon.png">
+      <LogicalName>WeaponSkins.9045_AK47Chrome_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9046_SPAS12Chrome.jpg">
+      <LogicalName>WeaponSkins.9046_SPAS12Chrome.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9046_SPAS12Chrome.alpha.png">
+      <LogicalName>WeaponSkins.9046_SPAS12Chrome.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9046_SPAS12Chrome_Icon.png">
+      <LogicalName>WeaponSkins.9046_SPAS12Chrome_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9047_AWPChrome.jpg">
+      <LogicalName>WeaponSkins.9047_AWPChrome.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9047_AWPChrome.alpha.png">
+      <LogicalName>WeaponSkins.9047_AWPChrome.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9047_AWPChrome_Icon.png">
+      <LogicalName>WeaponSkins.9047_AWPChrome_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9048_M4A1Damascus.jpg">
+      <LogicalName>WeaponSkins.9048_M4A1Damascus.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9048_M4A1Damascus.alpha.png">
+      <LogicalName>WeaponSkins.9048_M4A1Damascus.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9048_M4A1Damascus_Icon.png">
+      <LogicalName>WeaponSkins.9048_M4A1Damascus_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9049_AK47Damascus.jpg">
+      <LogicalName>WeaponSkins.9049_AK47Damascus.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9049_AK47Damascus.alpha.png">
+      <LogicalName>WeaponSkins.9049_AK47Damascus.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9049_AK47Damascus_Icon.png">
+      <LogicalName>WeaponSkins.9049_AK47Damascus_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9050_SPAS12Damascus.jpg">
+      <LogicalName>WeaponSkins.9050_SPAS12Damascus.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9050_SPAS12Damascus.alpha.png">
+      <LogicalName>WeaponSkins.9050_SPAS12Damascus.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9050_SPAS12Damascus_Icon.png">
+      <LogicalName>WeaponSkins.9050_SPAS12Damascus_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9051_AWPDamascus.jpg">
+      <LogicalName>WeaponSkins.9051_AWPDamascus.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9051_AWPDamascus.alpha.png">
+      <LogicalName>WeaponSkins.9051_AWPDamascus.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9051_AWPDamascus_Icon.png">
+      <LogicalName>WeaponSkins.9051_AWPDamascus_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9056_M4A1Carbon.jpg">
+      <LogicalName>WeaponSkins.9056_M4A1Carbon.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9056_M4A1Carbon.alpha.png">
+      <LogicalName>WeaponSkins.9056_M4A1Carbon.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9056_M4A1Carbon_Icon.png">
+      <LogicalName>WeaponSkins.9056_M4A1Carbon_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9057_AK47Carbon.jpg">
+      <LogicalName>WeaponSkins.9057_AK47Carbon.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9057_AK47Carbon.alpha.png">
+      <LogicalName>WeaponSkins.9057_AK47Carbon.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9057_AK47Carbon_Icon.png">
+      <LogicalName>WeaponSkins.9057_AK47Carbon_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9058_SPAS12Carbon.jpg">
+      <LogicalName>WeaponSkins.9058_SPAS12Carbon.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9058_SPAS12Carbon.alpha.png">
+      <LogicalName>WeaponSkins.9058_SPAS12Carbon.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9058_SPAS12Carbon_Icon.png">
+      <LogicalName>WeaponSkins.9058_SPAS12Carbon_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9059_AWPCarbon.jpg">
+      <LogicalName>WeaponSkins.9059_AWPCarbon.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9059_AWPCarbon.alpha.png">
+      <LogicalName>WeaponSkins.9059_AWPCarbon.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9059_AWPCarbon_Icon.png">
+      <LogicalName>WeaponSkins.9059_AWPCarbon_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9060_M4A1Tempered.jpg">
+      <LogicalName>WeaponSkins.9060_M4A1Tempered.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9060_M4A1Tempered.alpha.png">
+      <LogicalName>WeaponSkins.9060_M4A1Tempered.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9060_M4A1Tempered_Icon.png">
+      <LogicalName>WeaponSkins.9060_M4A1Tempered_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9061_AK47Tempered.jpg">
+      <LogicalName>WeaponSkins.9061_AK47Tempered.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9061_AK47Tempered.alpha.png">
+      <LogicalName>WeaponSkins.9061_AK47Tempered.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9061_AK47Tempered_Icon.png">
+      <LogicalName>WeaponSkins.9061_AK47Tempered_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9062_SPAS12Tempered.jpg">
+      <LogicalName>WeaponSkins.9062_SPAS12Tempered.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9062_SPAS12Tempered.alpha.png">
+      <LogicalName>WeaponSkins.9062_SPAS12Tempered.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9062_SPAS12Tempered_Icon.png">
+      <LogicalName>WeaponSkins.9062_SPAS12Tempered_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9063_AWPTempered.jpg">
+      <LogicalName>WeaponSkins.9063_AWPTempered.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9063_AWPTempered.alpha.png">
+      <LogicalName>WeaponSkins.9063_AWPTempered.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9063_AWPTempered_Icon.png">
+      <LogicalName>WeaponSkins.9063_AWPTempered_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <!-- [Chrome Max] 9064-9067: art + gloss mask + icon. -->
+    <EmbeddedResource Include="WeaponSkins\9064_M4A1ChromeMax.jpg">
+      <LogicalName>WeaponSkins.9064_M4A1ChromeMax.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9064_M4A1ChromeMax.alpha.png">
+      <LogicalName>WeaponSkins.9064_M4A1ChromeMax.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9064_M4A1ChromeMax_Icon.png">
+      <LogicalName>WeaponSkins.9064_M4A1ChromeMax_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9065_AK47ChromeMax.jpg">
+      <LogicalName>WeaponSkins.9065_AK47ChromeMax.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9065_AK47ChromeMax.alpha.png">
+      <LogicalName>WeaponSkins.9065_AK47ChromeMax.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9065_AK47ChromeMax_Icon.png">
+      <LogicalName>WeaponSkins.9065_AK47ChromeMax_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9066_SPAS12ChromeMax.jpg">
+      <LogicalName>WeaponSkins.9066_SPAS12ChromeMax.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9066_SPAS12ChromeMax.alpha.png">
+      <LogicalName>WeaponSkins.9066_SPAS12ChromeMax.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9066_SPAS12ChromeMax_Icon.png">
+      <LogicalName>WeaponSkins.9066_SPAS12ChromeMax_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9067_AWPChromeMax.jpg">
+      <LogicalName>WeaponSkins.9067_AWPChromeMax.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9067_AWPChromeMax.alpha.png">
+      <LogicalName>WeaponSkins.9067_AWPChromeMax.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9067_AWPChromeMax_Icon.png">
+      <LogicalName>WeaponSkins.9067_AWPChromeMax_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <!-- 9037 Frost Serpent. THREE rows: unlike 9035/9036 this one has its own painted art, and
+         its .alpha.png is a GLOSS mask (Bumped Specular), not a transparency mask. -->
+    <EmbeddedResource Include="WeaponSkins\9037_FrostSerpent.jpg">
+      <LogicalName>WeaponSkins.9037_FrostSerpent.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9037_FrostSerpent.alpha.png">
+      <LogicalName>WeaponSkins.9037_FrostSerpent.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9037_FrostSerpent_Icon.png">
+      <LogicalName>WeaponSkins.9037_FrostSerpent_Icon.png</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
