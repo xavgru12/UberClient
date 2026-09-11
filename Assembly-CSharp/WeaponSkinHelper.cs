@@ -261,6 +261,14 @@ public static class WeaponSkinHelper
 		// 9037. NOT a Glass-Hangar skin -- it keeps AWP_Roughed's own Bumped Specular, so unlike
 		// 9020/9021/9035/9036 on the same weapon, alpha here means GLOSS and not transparency.
 		{ 9037, "9037_FrostSerpent.png" },
+		{ 9079, "9079_AWPUberverse.png" },
+		{ 9080, "9080_CyberNeon.png" },
+		{ 9081, "9081_ToxicVenom.png" },
+		{ 9082, "9082_MoltenInferno.png" },
+		// V1 (9083) and V1.2 (9084) share the same Uberverse galaxy paint as V2 (9079); they
+		// differ only in their orbital FX, so no new art is embedded for them.
+		{ 9083, "9079_AWPUberverse.png" },
+		{ 9084, "9079_AWPUberverse.png" },
 		// 2026-08-13. The glacier set: the first skins in this file that are GENERATED rather
 		// than painted. tools/make_glacier_skin.py transforms each base pixel-wise -- luminance
 		// through an ice ramp, procedural fractures and frost scaled by a glass weight, edge
@@ -1449,6 +1457,12 @@ public static class WeaponSkinHelper
 		{ 9066, "9066_SPAS12ChromeMax_Icon.png" },
 		{ 9067, "9067_AWPChromeMax_Icon.png" },
 		{ 9037, "9037_FrostSerpent_Icon.png" },
+		{ 9079, "9079_AWPUberverse_Icon.png" },
+		{ 9080, "9080_CyberNeon_Icon.png" },
+		{ 9081, "9081_ToxicVenom_Icon.png" },
+		{ 9082, "9082_MoltenInferno_Icon.png" },
+		{ 9083, "9079_AWPUberverse_Icon.png" }, // Uberverse V1 shares the V2 shop icon
+		{ 9084, "9079_AWPUberverse_Icon.png" }, // Uberverse V1.2 shares the V2 shop icon
 		// Framing inherited per BASE weapon, not chosen: each of these takes the camera of the
 		// shipped skin on the same weapon (9008 for the MG, 9012 sniper, 9013 shotgun, 9014
 		// cannon), which is what keeps a family of icons looking like a set. The stock icons
@@ -1667,6 +1681,13 @@ public static class WeaponSkinHelper
 			ParticleTint    = new Color(0.20f, 0.62f, 1.70f, 1f),
 			ParticleObjects = new string[] { "Sfx", "Spark" },
 			TintRenderers   = new string[] { "SplatterTrail" } } },
+		{ 9079, new MuzzleTintSpec {   // AWP [Uberverse]  (AWP_Roughed) -- CYAN muzzle
+			HasLight        = true,
+			LightColour     = new Color(0.20f, 0.85f, 1.00f, 1f),
+			HasParticles    = true,
+			ParticleTint    = new Color(0.30f, 1.30f, 1.60f, 1f),
+			ParticleObjects = new string[] { "Sfx", "Spark" },
+			TintRenderers   = new string[] { "SplatterTrail" } } },
 
 		// 9021 Icebreaker IS DELIBERATELY ABSENT, and this is the record of why -- it was asked
 		// for in the same breath as 9020 and is a completely different problem.
@@ -1862,13 +1883,19 @@ public static class WeaponSkinHelper
 			// so a mask of mostly zero alpha leaves it invisible as intended, while a fully
 			// opaque texture turns it into a visible square. Losing the alpha here shows up
 			// on the flash long before it is noticeable on the gun body.
-			Texture2D merged = new Texture2D(colour.width, colour.height, TextureFormat.RGBA32, false);
+			// Uberverse (9079) is a starfield-heavy skin whose fine detail aliases/shimmers under
+			// camera motion and scope zoom WITHOUT mipmaps. Enable mipmaps + trilinear for it ONLY,
+			// so the other skins keep their exact shipped (mip-free) behaviour unchanged.
+			bool uberverseMips = stem != null && stem.IndexOf("Uberverse", StringComparison.OrdinalIgnoreCase) >= 0;
+			Texture2D merged = new Texture2D(colour.width, colour.height, TextureFormat.RGBA32, uberverseMips);
 			Color[] rgb = colour.GetPixels();
 			Color[] a = maskTex.GetPixels();
 			for (int i = 0; i < rgb.Length; i++)
 				rgb[i].a = a[i].r; // greyscale mask: any channel carries the value
 			merged.SetPixels(rgb);
-			merged.Apply(false);
+			merged.Apply(uberverseMips);
+			if (uberverseMips)
+				merged.filterMode = FilterMode.Trilinear;
 			return merged;
 		}
 
@@ -1928,11 +1955,32 @@ public static class WeaponSkinHelper
 		return tex;
 	}
 
+	// True for any renderer belonging to one of our procedural FX (Uberverse V1/V1.2/V2 and the
+	// three themed auras). ApplyToWeapon must never repaint these with the gun's diffuse atlas.
+	private static bool IsEffectRenderer(Renderer r)
+	{
+		return UberverseWeaponEffect.Owns(r) || UberverseV1Effect.Owns(r) || UberverseV12Effect.Owns(r)
+			|| WeaponEmitterEffect.Owns(r);
+	}
+
 	// Called from Avatar.AssignWeapon right after a weapon is attached to a player.
 	public static void ApplyToWeapon(GameObject weaponRoot, int itemId)
 	{
 		if (weaponRoot == null)
 			return;
+
+		// Independent of diffuse delivery: attaches the AWP [Uberverse] orbital-system FX for
+		// item 9079, and removes it on pooled-root skin changes. Safe no-op for every other id.
+		UberverseWeaponEffect.Apply(weaponRoot, itemId);
+		// V1 (9083) and V1.2 (9084): the earlier procedural-sphere Uberverse FX, kept selectable
+		// alongside V2 so the team can compare. Each is a no-op for every id but its own.
+		UberverseV1Effect.Apply(weaponRoot, itemId);
+		UberverseV12Effect.Apply(weaponRoot, itemId);
+		// Themed auras for the three new AWP skins. Same contract: attach on match, tear down on
+		// switch, no-op otherwise.
+		CyberNeonWeaponEffect.Apply(weaponRoot, itemId);
+		ToxicVenomWeaponEffect.Apply(weaponRoot, itemId);
+		MoltenInfernoWeaponEffect.Apply(weaponRoot, itemId);
 
 		// Before the texture check: the tracer is independent of whether this item has
 		// a skin registered, so an item could have one without the other.
@@ -1961,6 +2009,9 @@ public static class WeaponSkinHelper
 		foreach (Renderer r in renderers)
 		{
 			if (r == null)
+				continue;
+			// Never repaint the procedural FX renderers with the gun's diffuse atlas.
+			if (IsEffectRenderer(r))
 				continue;
 
 			// Skip effect renderers. A weapon's children include its muzzle flash and shell
@@ -2353,6 +2404,8 @@ public static class WeaponSkinHelper
 		foreach (Renderer src in renderers)
 		{
 			if (src == null)
+				continue;
+			if (IsEffectRenderer(src))
 				continue;
 
 			// INSPECT VIA sharedMaterial, NOT material. This is the 63a9776 fix that landed in

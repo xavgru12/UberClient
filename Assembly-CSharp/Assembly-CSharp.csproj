@@ -780,6 +780,10 @@
     <Compile Include="WeaponShootEvent.cs" />
     <Compile Include="WeaponSimulator.cs" />
     <Compile Include="WeaponSkinHelper.cs" />
+    <Compile Include="UberverseWeaponEffect.cs" />
+    <Compile Include="WeaponEmitterEffect.cs" />
+    <Compile Include="UberverseV1Effect.cs" />
+    <Compile Include="UberverseV12Effect.cs" />
     <Compile Include="WeaponSlot.cs" />
     <Compile Include="WeaponTailSound.cs" />
     <Compile Include="WeekendChallengePopupDialog.cs" />
@@ -1291,6 +1295,51 @@
     </EmbeddedResource>
     <EmbeddedResource Include="WeaponSkins\9037_FrostSerpent_Icon.png">
       <LogicalName>WeaponSkins.9037_FrostSerpent_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9079_AWPUberverse.jpg">
+      <LogicalName>WeaponSkins.9079_AWPUberverse.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9079_AWPUberverse.alpha.png">
+      <LogicalName>WeaponSkins.9079_AWPUberverse.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9079_AWPUberverse_Icon.png">
+      <LogicalName>WeaponSkins.9079_AWPUberverse_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9080_CyberNeon.jpg">
+      <LogicalName>WeaponSkins.9080_CyberNeon.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9080_CyberNeon.alpha.png">
+      <LogicalName>WeaponSkins.9080_CyberNeon.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9080_CyberNeon_Icon.png">
+      <LogicalName>WeaponSkins.9080_CyberNeon_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9081_ToxicVenom.jpg">
+      <LogicalName>WeaponSkins.9081_ToxicVenom.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9081_ToxicVenom.alpha.png">
+      <LogicalName>WeaponSkins.9081_ToxicVenom.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9081_ToxicVenom_Icon.png">
+      <LogicalName>WeaponSkins.9081_ToxicVenom_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9082_MoltenInferno.jpg">
+      <LogicalName>WeaponSkins.9082_MoltenInferno.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9082_MoltenInferno.alpha.png">
+      <LogicalName>WeaponSkins.9082_MoltenInferno.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9082_MoltenInferno_Icon.png">
+      <LogicalName>WeaponSkins.9082_MoltenInferno_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\planet_violet.png">
+      <LogicalName>WeaponSkins.planet_violet.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\planet_magenta.png">
+      <LogicalName>WeaponSkins.planet_magenta.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\planet_blue.png">
+      <LogicalName>WeaponSkins.planet_blue.png</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
