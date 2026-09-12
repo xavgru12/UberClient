@@ -15,7 +15,7 @@
 //   9008 Inferno MG        (base 1002 MachineGun)
 //   9009 Cryo Strike       (base 1004 PaintSniper)
 //   9010 Solar Cannon      (base 1005 Cannon)
-//   9011 Natural Shotgun   (base 1003 PaintShotty)   -- renamed from Toxic Splatter 2026-08-12
+//   9011 Hazardous Shotgun (was Natural Shotgun)   (base 1003 PaintShotty)   -- renamed from Toxic Splatter 2026-08-12
 //   9012 Void Amethyst     (base 1004 PaintSniper)   -- also the only tracer override
 //   9013 Bloodhound        (base 1003 PaintShotty)
 //   9014 Abyssal Leviathan (base 1005 Cannon)
@@ -147,7 +147,7 @@ public static class WeaponSkinHelper
 		{ 9008, "9008_InfernoMG.png" },
 		{ 9009, "9009_CryoStrike.png" },
 		{ 9010, "9010_SolarCannon.png" },
-		{ 9011, "9011_NaturalShotgun.png" },
+		{ 9011, "9011_HazardousShotgun.png" },
 		// 2026-08-06 batch. Sniper, shotgun and cannon port cleanly to the 4.7.1
 		// meshes: like the four above, these are authored against the 4.3.8 base UV
 		// layouts, which measure 0.959 to 0.979 island recall against the meshes
@@ -1404,7 +1404,7 @@ public static class WeaponSkinHelper
 		{ 9008, "9008_InfernoMG_Icon.png" },
 		{ 9009, "9009_CryoStrike_Icon.png" },
 		{ 9010, "9010_SolarCannon_Icon.png" },
-		{ 9011, "9011_NaturalShotgun_Icon.png" },
+		{ 9011, "9011_HazardousShotgun_Icon.png" },
 		{ 9012, "9012_VoidAmethyst_Icon.png" },
 		{ 9013, "9013_Bloodhound_Icon.png" },
 		{ 9014, "9014_AbyssalLeviathan_Icon.png" },

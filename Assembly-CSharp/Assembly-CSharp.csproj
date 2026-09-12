@@ -849,14 +849,14 @@
     <EmbeddedResource Include="WeaponSkins\9010_SolarCannon_Icon.png">
       <LogicalName>WeaponSkins.9010_SolarCannon_Icon.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9011_NaturalShotgun.alpha.png">
-      <LogicalName>WeaponSkins.9011_NaturalShotgun.alpha.png</LogicalName>
+    <EmbeddedResource Include="WeaponSkins\9011_HazardousShotgun.alpha.png">
+      <LogicalName>WeaponSkins.9011_HazardousShotgun.alpha.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9011_NaturalShotgun.jpg">
-      <LogicalName>WeaponSkins.9011_NaturalShotgun.jpg</LogicalName>
+    <EmbeddedResource Include="WeaponSkins\9011_HazardousShotgun.jpg">
+      <LogicalName>WeaponSkins.9011_HazardousShotgun.jpg</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="WeaponSkins\9011_NaturalShotgun_Icon.png">
-      <LogicalName>WeaponSkins.9011_NaturalShotgun_Icon.png</LogicalName>
+    <EmbeddedResource Include="WeaponSkins\9011_HazardousShotgun_Icon.png">
+      <LogicalName>WeaponSkins.9011_HazardousShotgun_Icon.png</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="WeaponSkins\9012_VoidAmethyst.alpha.png">
       <LogicalName>WeaponSkins.9012_VoidAmethyst.alpha.png</LogicalName>
