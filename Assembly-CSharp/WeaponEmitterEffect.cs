@@ -41,7 +41,8 @@ public abstract class WeaponEmitterEffect : MonoBehaviour
     // Attach a concrete effect to the measured static AWP body mesh. Always enumerates and removes
     // existing components of this exact type (so switching to another skin tears this one down),
     // retaining one live instance when the item id still matches. Mirrors UberverseWeaponEffect.Apply.
-    protected static void Attach<T>(GameObject weaponRoot, int itemId, int expectedId, string rootName)
+    protected static void Attach<T>(GameObject weaponRoot, int itemId, int expectedId, string rootName,
+        string meshName, float refLength)
         where T : WeaponEmitterEffect
     {
         if (weaponRoot == null) return;
@@ -62,7 +63,7 @@ public abstract class WeaponEmitterEffect : MonoBehaviour
 
         foreach (MeshFilter filter in weaponRoot.GetComponentsInChildren<MeshFilter>(true))
         {
-            if (filter.sharedMesh == null || filter.sharedMesh.name != "AWP") continue;
+            if (filter.sharedMesh == null || filter.sharedMesh.name != meshName) continue;
             Renderer body = filter.GetComponent<Renderer>();
             if (body == null || Owns(body)) continue;
             GameObject root = new GameObject(rootName);
@@ -72,7 +73,7 @@ public abstract class WeaponEmitterEffect : MonoBehaviour
             root.transform.localScale = Vector3.one;
             root.layer = body.gameObject.layer;
             T effect = root.AddComponent<T>();
-            try { effect.Initialize(body, filter.sharedMesh.bounds); }
+            try { effect.Initialize(body, filter.sharedMesh.bounds, refLength); }
             catch (Exception error)
             {
                 root.SetActive(false);
@@ -85,12 +86,13 @@ public abstract class WeaponEmitterEffect : MonoBehaviour
 
     protected T Keep<T>(T resource) where T : UnityEngine.Object { owned.Add(resource); return resource; }
 
-    private void Initialize(Renderer body, Bounds bounds)
+    private void Initialize(Renderer body, Bounds bounds, float refLength)
     {
         source = body;
         bodyBounds = bounds;
-        // Exported AWP longitudinal extent; every distance below scales with the real body mesh.
-        scale = bounds.size.z / 1.477879f;
+        // refLength = the weapon's own exported longitudinal (z) extent; every distance below scales
+        // with the real body mesh so the same FX code fits any weapon, not just the AWP.
+        scale = bounds.size.z / refLength;
         anchor = new Vector3(bounds.center.x, bounds.max.y + .02f * scale, bounds.center.z);
         Shader additive = Shader.Find("Particles/Additive");
         if (additive == null || !additive.isSupported) additive = Shader.Find("Particles/Alpha Blended");
@@ -265,7 +267,7 @@ public sealed class CyberNeonWeaponEffect : WeaponEmitterEffect
 
     public static void Apply(GameObject weaponRoot, int itemId)
     {
-        Attach<CyberNeonWeaponEffect>(weaponRoot, itemId, ItemId, "CyberNeon_HoloRing");
+        Attach<CyberNeonWeaponEffect>(weaponRoot, itemId, ItemId, "CyberNeon_HoloRing", "AWP", 1.477879f);
     }
 
     protected override Texture2D BuildSpriteTexture() { return Keep(SoftBox("CyberNeon_Node", 1.4f)); }
@@ -307,7 +309,7 @@ public sealed class ToxicVenomWeaponEffect : WeaponEmitterEffect
 
     public static void Apply(GameObject weaponRoot, int itemId)
     {
-        Attach<ToxicVenomWeaponEffect>(weaponRoot, itemId, ItemId, "ToxicVenom_Gas");
+        Attach<ToxicVenomWeaponEffect>(weaponRoot, itemId, ItemId, "ToxicVenom_Gas", "AWP", 1.477879f);
     }
 
     protected override Texture2D BuildSpriteTexture() { return Keep(SoftDot("ToxicVenom_Blob", 2f)); }
@@ -370,7 +372,7 @@ public sealed class MoltenInfernoWeaponEffect : WeaponEmitterEffect
 
     public static void Apply(GameObject weaponRoot, int itemId)
     {
-        Attach<MoltenInfernoWeaponEffect>(weaponRoot, itemId, ItemId, "MoltenInferno_Embers");
+        Attach<MoltenInfernoWeaponEffect>(weaponRoot, itemId, ItemId, "MoltenInferno_Embers", "AWP", 1.477879f);
     }
 
     protected override Texture2D BuildSpriteTexture() { return Keep(SoftDot("MoltenInferno_Ember", 2.5f)); }
@@ -408,6 +410,161 @@ public sealed class MoltenInfernoWeaponEffect : WeaponEmitterEffect
             {
                 sizes[i] = (.0022f + .0014f * flick) * scale;
                 tints[i] = WithAlpha(hot, .75f * fade * flick);
+            }
+        }
+    }
+}
+
+/// <summary>Wrecker [Voidglass] (9085): the amethyst crystal core lit from within, a slow energy
+/// pulse plus refracted light-shards orbiting the glass on tilted planes. Attaches to polySurface24
+/// (the Wrecker's glass-bearing body), not the AWP.</summary>
+public sealed class VoidglassWeaponEffect : WeaponEmitterEffect
+{
+    public const int ItemId = 9085;
+    private const int CoreMotes = 6;
+    private static readonly Color Violet = new Color(.51f, .18f, 1f);
+    private static readonly Color Magenta = new Color(1f, .12f, .70f);
+    private static readonly Color CoolWhite = new Color(.85f, .80f, 1f);
+    protected override int SpriteCount { get { return 34; } }
+
+    public static void Apply(GameObject weaponRoot, int itemId)
+    {
+        Attach<VoidglassWeaponEffect>(weaponRoot, itemId, ItemId, "Voidglass_Crystal", "polySurface24", 0.853306f);
+    }
+
+    protected override Texture2D BuildSpriteTexture() { return Keep(SoftBox("Voidglass_Shard", 1.3f)); }
+
+    protected override void ConfigureMaterial(Material material)
+    {
+        if (material.HasProperty("_TintColor")) material.SetColor("_TintColor", new Color(.5f, .5f, .5f, .5f));
+    }
+
+    protected override void Emit(double time)
+    {
+        Vector3 core = bodyBounds.center; // orbit the crystal core inside the weapon, not a scope
+        float pulse = .5f + .5f * Mathf.Sin(Phase(time, .6, 0));
+        Quaternion tiltA = Quaternion.Euler(20f, 0f, 15f), tiltB = Quaternion.Euler(20f, 0f, -15f);
+        int orbit = SpriteCount - CoreMotes;
+        for (int i = 0; i < SpriteCount; i++)
+        {
+            if (i < CoreMotes)
+            {
+                // Inner glow breathing inside the crystal core with the energy pulse.
+                float ang = i * (Mathf.PI * 2f / CoreMotes) + (float)time * .5f;
+                float r = .010f * scale * (.4f + Rand(i, 3) * .6f);
+                core.y = bodyBounds.center.y;
+                positions[i] = core + new Vector3(Mathf.Cos(ang) * r, Mathf.Sin(ang) * r * .6f, Mathf.Sin(ang) * r);
+                sizes[i] = (.010f + .006f * pulse) * scale;
+                tints[i] = WithAlpha(Color.Lerp(Violet, Magenta, pulse), .10f + .12f * pulse);
+            }
+            else
+            {
+                int j = i - CoreMotes;
+                float a = j * (Mathf.PI * 2f / orbit) + Phase(time, .35, 0);
+                float radius = (.045f + (j % 3) * .010f) * scale;
+                Quaternion tilt = (j % 2 == 0) ? tiltA : tiltB;
+                positions[i] = bodyBounds.center + tilt * new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius * .7f);
+                sizes[i] = (.0035f + Rand(j, 1) * .0035f) * scale;
+                float sparkle = Mathf.Pow(.5f + .5f * Mathf.Sin(a - (float)time * 2f + Rand(j, 2) * 6.283f), 8f);
+                tints[i] = WithAlpha(Color.Lerp(Violet, CoolWhite, sparkle), .12f + sparkle * .55f);
+            }
+        }
+    }
+}
+
+/// <summary>Splattergun [Prism Splatter] (9086): glowing paint droplets flicking off the muzzle in
+/// cyan / magenta / lime, thrown forward on a downward gravity arc. Attaches to SplatterBody.</summary>
+public sealed class PrismSplatterWeaponEffect : WeaponEmitterEffect
+{
+    public const int ItemId = 9086;
+    private static readonly Color Cyan = new Color(.15f, .90f, 1f);
+    private static readonly Color Magenta = new Color(1f, .15f, .80f);
+    private static readonly Color Lime = new Color(.60f, 1f, .10f);
+    protected override int SpriteCount { get { return 26; } }
+
+    public static void Apply(GameObject weaponRoot, int itemId)
+    {
+        Attach<PrismSplatterWeaponEffect>(weaponRoot, itemId, ItemId, "PrismSplatter_Drops", "SplatterBody", 0.645136f);
+    }
+
+    protected override Texture2D BuildSpriteTexture() { return Keep(SoftDot("PrismSplatter_Drop", 3f)); }
+
+    protected override void ConfigureMaterial(Material material)
+    {
+        if (material.HasProperty("_TintColor")) material.SetColor("_TintColor", new Color(.5f, .5f, .5f, .5f));
+    }
+
+    protected override void Emit(double time)
+    {
+        Vector3 muzzle = new Vector3(bodyBounds.center.x, bodyBounds.center.y + .02f * scale, bodyBounds.max.z);
+        for (int i = 0; i < SpriteCount; i++)
+        {
+            float life = (float)(time * (.5 + Rand(i, 5) * .3) + Rand(i, 1)) % 1f;
+            float ang = Rand(i, 2) * 6.283f;
+            float spread = .25f + Rand(i, 3) * .55f;
+            // forward off the barrel (+z) with lateral spread + slight lift, then gravity arcs it down
+            Vector3 vel = new Vector3(Mathf.Cos(ang) * spread, Mathf.Sin(ang) * spread + .35f, .55f + Rand(i, 4) * .5f);
+            Vector3 arc = vel * life + new Vector3(0f, -1.4f, 0f) * (life * life * .5f);
+            positions[i] = muzzle + arc * (.11f * scale);
+            float fade = Mathf.Sin(life * Mathf.PI);
+            sizes[i] = (.0045f + (1f - life) * .0030f) * scale;
+            Color c = (i % 3 == 0) ? Cyan : (i % 3 == 1) ? Magenta : Lime;
+            tints[i] = WithAlpha(c, .60f * fade);
+        }
+    }
+}
+
+/// <summary>Grenade Launcher [Dragon's Maw] (9087): a faint ember breath drifting out of the muzzle
+/// mouth, hot embers cooling white->orange->red among soft warm haze puffs. Attaches to "Launcher".</summary>
+public sealed class DragonsMawWeaponEffect : WeaponEmitterEffect
+{
+    public const int ItemId = 9087;
+    private const int HazeCount = 8;
+    private static readonly Color WhiteHot = new Color(1f, .92f, .70f);
+    private static readonly Color Orange = new Color(1f, .45f, .07f);
+    private static readonly Color DeepRed = new Color(.55f, .07f, .02f);
+    private static readonly Color Haze = new Color(.70f, .28f, .08f); // warm breath (additive-friendly)
+    protected override int SpriteCount { get { return 30; } }
+
+    public static void Apply(GameObject weaponRoot, int itemId)
+    {
+        Attach<DragonsMawWeaponEffect>(weaponRoot, itemId, ItemId, "DragonsMaw_Breath", "Launcher", 0.783206f);
+    }
+
+    protected override Texture2D BuildSpriteTexture() { return Keep(SoftDot("DragonsMaw_Ember", 2.5f)); }
+
+    protected override void ConfigureMaterial(Material material)
+    {
+        if (material.HasProperty("_TintColor")) material.SetColor("_TintColor", new Color(.5f, .5f, .5f, .5f));
+    }
+
+    protected override void Emit(double time)
+    {
+        // Muzzle mouth = front of the barrel; embers and warm haze breathe out and up, cooling.
+        Vector3 mouth = new Vector3(bodyBounds.center.x, bodyBounds.center.y + .01f * scale, bodyBounds.max.z);
+        for (int i = 0; i < SpriteCount; i++)
+        {
+            bool haze = i < HazeCount;
+            float life = (float)(time * (haze ? .22 : .50) + Rand(i, 1)) % 1f;
+            float ang = Rand(i, 2) * 6.283f;
+            float spread = (haze ? .04f : .03f) * scale;
+            float curl = Mathf.Sin(life * Mathf.PI * 2f + ang) * spread * .5f;
+            positions[i] = mouth + new Vector3(
+                Mathf.Cos(ang) * spread + curl,
+                (.02f + life * (haze ? .12f : .09f)) * scale,
+                (.01f + life * .05f) * scale + Mathf.Sin(life * 3f + ang) * .004f * scale);
+            float flick = .70f + .30f * Mathf.Sin((float)time * 22f + Rand(i, 6) * 30f);
+            float fade = Mathf.Sin(life * Mathf.PI);
+            if (haze)
+            {
+                sizes[i] = (.014f + life * .024f) * scale;
+                tints[i] = WithAlpha(Haze, .07f * fade);
+            }
+            else
+            {
+                Color hot = Color.Lerp(WhiteHot, Color.Lerp(Orange, DeepRed, life), life);
+                sizes[i] = (.0025f + .0015f * flick) * scale;
+                tints[i] = WithAlpha(hot, .70f * (1f - life) * flick);
             }
         }
     }

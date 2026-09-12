@@ -1341,6 +1341,39 @@
     <EmbeddedResource Include="WeaponSkins\planet_blue.png">
       <LogicalName>WeaponSkins.planet_blue.png</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9085_WreckerVoidglass.jpg">
+      <LogicalName>WeaponSkins.9085_WreckerVoidglass.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9085_WreckerVoidglass.alpha.png">
+      <LogicalName>WeaponSkins.9085_WreckerVoidglass.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9086_SplattergunPrismSplatter.jpg">
+      <LogicalName>WeaponSkins.9086_SplattergunPrismSplatter.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9086_SplattergunPrismSplatter.alpha.png">
+      <LogicalName>WeaponSkins.9086_SplattergunPrismSplatter.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9087_LauncherDragonsMaw.jpg">
+      <LogicalName>WeaponSkins.9087_LauncherDragonsMaw.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9087_LauncherDragonsMaw.alpha.png">
+      <LogicalName>WeaponSkins.9087_LauncherDragonsMaw.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9083_AWPUberverseV1_Icon.png">
+      <LogicalName>WeaponSkins.9083_AWPUberverseV1_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9084_AWPUberverseV12_Icon.png">
+      <LogicalName>WeaponSkins.9084_AWPUberverseV12_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9085_WreckerVoidglass_Icon.png">
+      <LogicalName>WeaponSkins.9085_WreckerVoidglass_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9086_SplattergunPrismSplatter_Icon.png">
+      <LogicalName>WeaponSkins.9086_SplattergunPrismSplatter_Icon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\9087_LauncherDragonsMaw_Icon.png">
+      <LogicalName>WeaponSkins.9087_LauncherDragonsMaw_Icon.png</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -269,6 +269,10 @@ public static class WeaponSkinHelper
 		// differ only in their orbital FX, so no new art is embedded for them.
 		{ 9083, "9079_AWPUberverse.png" },
 		{ 9084, "9079_AWPUberverse.png" },
+		// New weapon skins on their own base weapons (not the AWP): Wrecker (116) + Splattergun (106).
+		{ 9085, "9085_WreckerVoidglass.png" },
+		{ 9086, "9086_SplattergunPrismSplatter.png" },
+		{ 9087, "9087_LauncherDragonsMaw.png" }, // Grenade Launcher (base 111)
 		// 2026-08-13. The glacier set: the first skins in this file that are GENERATED rather
 		// than painted. tools/make_glacier_skin.py transforms each base pixel-wise -- luminance
 		// through an ice ramp, procedural fractures and frost scaled by a glass weight, edge
@@ -1461,8 +1465,11 @@ public static class WeaponSkinHelper
 		{ 9080, "9080_CyberNeon_Icon.png" },
 		{ 9081, "9081_ToxicVenom_Icon.png" },
 		{ 9082, "9082_MoltenInferno_Icon.png" },
-		{ 9083, "9079_AWPUberverse_Icon.png" }, // Uberverse V1 shares the V2 shop icon
-		{ 9084, "9079_AWPUberverse_Icon.png" }, // Uberverse V1.2 shares the V2 shop icon
+		{ 9083, "9083_AWPUberverseV1_Icon.png" },   // V1: procedural gas-giants, wide orbit
+		{ 9084, "9084_AWPUberverseV12_Icon.png" },  // V1.2: same worlds, tight orbit
+		{ 9085, "9085_WreckerVoidglass_Icon.png" },
+		{ 9086, "9086_SplattergunPrismSplatter_Icon.png" },
+		{ 9087, "9087_LauncherDragonsMaw_Icon.png" },
 		// Framing inherited per BASE weapon, not chosen: each of these takes the camera of the
 		// shipped skin on the same weapon (9008 for the MG, 9012 sniper, 9013 shotgun, 9014
 		// cannon), which is what keeps a family of icons looking like a set. The stock icons
@@ -1981,6 +1988,11 @@ public static class WeaponSkinHelper
 		CyberNeonWeaponEffect.Apply(weaponRoot, itemId);
 		ToxicVenomWeaponEffect.Apply(weaponRoot, itemId);
 		MoltenInfernoWeaponEffect.Apply(weaponRoot, itemId);
+		// New weapons' auras (attach to their own meshes, not the AWP): Voidglass on the Wrecker,
+		// Prism Splatter on the Splattergun. No-op for every other id.
+		VoidglassWeaponEffect.Apply(weaponRoot, itemId);
+		PrismSplatterWeaponEffect.Apply(weaponRoot, itemId);
+		DragonsMawWeaponEffect.Apply(weaponRoot, itemId);
 
 		// Before the texture check: the tracer is independent of whether this item has
 		// a skin registered, so an item could have one without the other.
