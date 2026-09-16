@@ -779,6 +779,12 @@
     <Compile Include="WeaponShootAnimator.cs" />
     <Compile Include="WeaponShootEvent.cs" />
     <Compile Include="WeaponSimulator.cs" />
+    <Compile Include="WeaponSkinHelper.cs" />
+    <Compile Include="WeaponSkinDictionaries.cs" />
+    <Compile Include="UberverseWeaponEffect.cs" />
+    <Compile Include="WeaponEmitterEffect.cs" />
+    <Compile Include="UberverseV1Effect.cs" />
+    <Compile Include="UberverseV12Effect.cs" />
     <Compile Include="WeaponSlot.cs" />
     <Compile Include="WeaponTailSound.cs" />
     <Compile Include="WeekendChallengePopupDialog.cs" />
@@ -793,6 +799,18 @@
       <Project>{fa2878ab-26c6-4a1d-8c38-8f8981e7ba33}</Project>
       <Name>Assembly-CSharp-firstpass</Name>
     </ProjectReference>
+  </ItemGroup>
+  <!-- Skin art. Embedded resources are the only load path. -->
+  <ItemGroup>
+    <EmbeddedResource Include="WeaponSkins\2010_HazardousShotgun.alpha.png">
+      <LogicalName>WeaponSkins.2010_HazardousShotgun.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\2010_HazardousShotgun.jpg">
+      <LogicalName>WeaponSkins.2010_HazardousShotgun.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\2010_HazardousShotgun_Icon.png">
+      <LogicalName>WeaponSkins.2010_HazardousShotgun_Icon.png</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

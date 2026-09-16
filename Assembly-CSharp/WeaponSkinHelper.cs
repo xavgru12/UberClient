@@ -1,0 +1,2583 @@
+// WeaponSkinHelper.cs — source-level port of the Elements weapon skin batch.
+//
+// Previously shipped as a runtime patch (BepInEx/Harmony mod, then a Mono.Cecil static
+// IL patch against a compiled Assembly-CSharp.dll — see constripacity/uberstrike-weapon-skins
+// on disk). HaZard asked for this done directly in this repo's source instead, so this
+// ports the same, already-verified-working logic: hook the real weapon-attach path
+// (Avatar.AssignWeapon) and swap the material's texture, and override the shop icon
+// (ProxyItem's constructor) for these 5 item ids. No custom mesh, no AssetBundle --
+// these are pure re-textures of weapons that already exist in the game.
+//
+// Item ID -> base weapon mapping (from unity_2022_tg/skin-framework commit 850893ee).
+// Keep this list complete: it went stale once at 2015-2018 and again at 2021, which makes it
+// look authoritative while being wrong.
+//   2011 Plasma Bat        (base 1000 TheSplatbat)
+//   2012 Inferno MG        (base 1002 MachineGun)
+//   2013 Cryo Strike       (base 1004 PaintSniper)
+//   2014 Solar Cannon      (base 1005 Cannon)
+//   2010 Hazardous Shotgun (was Natural Shotgun)   (base 1003 PaintShotty)   -- renamed from Toxic Splatter 2026-08-12
+//   2015 Void Amethyst     (base 1004 PaintSniper)   -- also the only tracer override
+//   2016 Bloodhound        (base 1003 PaintShotty)
+//   2017 Abyssal Leviathan (base 1005 Cannon)
+//   2018 Neon Circuit      (base 1002 MachineGun)
+//   2019 Crimson Dragon    (base 6 MythicEdge-DE, premium melee)
+//   2020 Frostbound        (base 6 MythicEdge-DE)    -- see-through ice, HELIX flames, blue as
+//                                                       of 2026-08-17, on the second flame sheet
+//   2021 Frostfire         (base 6 MythicEdge-DE)    -- shares 2020's art, SURFACE flames
+//   2022 Bloodglass        (base 6 MythicEdge-DE)    -- see-through red, SURFACE flames
+//   2023 AWP [Permafrost]  (base AWP_Roughed)        -- see-through ice, HELIX flames as of
+//                                                       2026-08-17, plus a blue muzzle light.
+//                                                       Its mesh is still not CPU-readable, so
+//                                                       SURFACE remains impossible here.
+//   2024 Icebreaker        (base DeathHammer)        -- see-through ice, HELIX flames, same
+//                                                       caveat. DeathHammer is ItemClass 4, a
+//                                                       SHOTGUN with 12 projectiles -- not a
+//                                                       warhammer.
+//   2025 MG [Watery]       (base 1002 MachineGun)
+//   2026 Sniper [Watery]   (base 1004 PaintSniper)
+//   2027 Shotgun [Watery]  (base 1003 PaintShotty)
+//   2028 Cannon [Watery]   (base 1005 Cannon)
+//   2029 MG [Frosted]      (base 1002 MachineGun)
+//   2030 Sniper [Frosted]  (base 1004 PaintSniper)
+//   2031 Shotgun [Frosted] (base 1003 PaintShotty)
+//   2032 Cannon [Frosted]  (base 1005 Cannon)
+//   2033 MG [Lava]         (base 1002 MachineGun)   -- the [Lava] set: same water shader and the
+//   2034 Sniper [Lava]     (base 1004 PaintSniper)     same four water textures as [Watery],
+//   2035 Shotgun [Lava]    (base 1003 PaintShotty)     three colours apart. NO painted art and
+//   2036 Cannon [Lava]     (base 1005 Cannon)          NO flames -- see LavaBindings.
+//   2037 Neon Circuit [Black] (base 1002 MachineGun) -- 2018's sibling: the SAME cyan linework,
+//                                                       pixel-for-pixel, over a graphite body
+//                                                       instead of a light one.
+//   2038 AWP [Matte Glass]  (base AWP_Roughed)       -- 2023's variant. SHARES 2023's painted art
+//                                                       and shader; the ONLY difference is
+//                                                       _ReflectColor driven to near-black, which
+//                                                       removes the white gloss term and leaves
+//                                                       the see-through untouched. NO flames.
+//   2039 Icebreaker [Matte Glass] (base DeathHammer) -- 2024's variant, same one-number change.
+//   2041 AWP [Clear Ice]     (base AWP_Roughed)       -- the ORIGINAL pre-2026-08-17 look, kept as
+//                                                       its own skin: blueish transparent with no
+//                                                       glow. NO SkinMaterialBindings entry, which
+//                                                       is the whole point -- it inherits
+//                                                       ApplyShaderOverride's icy default.
+//   2042 Icebreaker [Clear Ice] (base DeathHammer)    -- same, on the hammer.
+//   2043 M4A1 [Gold]        (base 28 M4_Standard)      -- the [Gold] set. PROCEDURALLY DYED from
+//   2044 AK-47 [Gold]       (base 38 AK47)                each weapon's own stock diffuse: a
+//   2045 SPAS-12 [Gold]     (base 60 Automatic_Shotgun_Roughed)  luminance remap through a
+//   2046 AWP [Gold]         (base 92 AWP_Roughed)         bronze->gold->specular ramp, so every
+//                                                       panel line, screw and vent of the base
+//                                                       survives. No AI pass and no hand art.
+//                                                       All four are Bumped Specular, so their
+//                                                       .alpha.png red channel is GLOSS.
+//   2047-2062  FIVE PROCEDURAL SETS on M4A1 / AK-47 / SPAS-12 / AWP, generated by
+//              webgl-skins-rendering/tools/make_skin_sets.py. Same principle as [Gold]: a dye
+//              moves colour and never redraws geometry, so every panel line, screw and stamp
+//              of the stock texture survives. All Bumped Specular, so .alpha.png red = GLOSS.
+//                2047-2050 [Chrome]    mirror silver, tone percentile-pinned per weapon so all
+//                                      four read as ONE plating job rather than four metals
+//                2051-2054 [Damascus]  domain-warped banding -- folded steel, not a repeat
+//                2055-2058 [Carbon]    twill weave on the dark panels, metal furniture kept
+//                2059-2062 [Tempered]  heat-oxide gradient driven by POSITION ALONG THE WEAPON,
+//                                      from a UV->3D map rasterised out of the mesh export.
+//                                      The first skin here whose colour knows where a texel
+//                                      sits on the gun rather than only what value it is.
+//   2063-2066  [Chrome Max] on the same four weapons -- engraved chrome, and the ONE set tonight
+//              that is NOT procedural. Engraving is new detail drawn onto the surface: scrollwork
+//              and filigree exist nowhere in the base to be remapped, so a dye cannot produce it
+//              and this went through Nano Banana Pro 2. Each weapon carries its own motif
+//              (acanthus / eastern baroque / industrial deco / English rose-and-scroll) so the
+//              four are not one idea repeated. That distinction -- treatments are dyed, designs
+//              are generated -- is the line the [Gold] work established.
+//   9052-9055, 9068-9078  [Venom] -- REMOVED 2026-08-18, ids retired, do not reuse.
+//              Three rounds all rejected in game: the procedural version ("not very unique" -- it
+//              was a filter, so it produced one idea four times), then an AI round, then a
+//              15-variant shoot-out with every generation registered as its own skin. None won.
+//              The brief itself needs rethinking, not the execution -- so nothing here is worth
+//              inheriting. The prompts and every generated sheet are kept in
+//              Desktop/UberStrike_Skins_2026-08-06/07_VenomV2 rather than in the client.
+//   2040 AWP [Frozen Serpent] (base AWP_Roughed)     -- painted, an ORIGINAL blue/white serpent.
+//                                                       Bumped Specular, so its .alpha.png red
+//                                                       channel is GLOSS, not transparency. It is
+//                                                       the first AWP skin whose gloss mask is
+//                                                       DERIVED rather than inherited -- the base
+//                                                       has none. Blue muzzle FX, no flames yet.
+//
+// Completed 2026-08-16 -- it had gone stale a THIRD time, stopping at 2022. Found by
+// skin_studio, which derives each skin's base weapon from this block and reported 2023/2024 as
+// having no derivable base, so the AWP and DeathHammer could not be previewed at all.
+//
+// 2033-2036 were added to this block IN THE SAME EDIT that added them to the tables below, which
+// is the only way this list stays true. Three of the four times it went stale, the tables were
+// right and only this block was wrong -- and because skin_studio reads THIS block to find each
+// skin's base weapon, a skin missing here cannot be previewed at all even though it works in game.
+//
+// This does NOT check ownership/equip state beyond what the game itself already enforces
+// via AssignWeapon (only ever called with an item the player has equipped in their
+// loadout) -- once the server knows about these item ids and a player's loadout
+// references one, this just changes what texture renders. No local bypass.
+//
+// WHERE "the server knows about these item ids" ACTUALLY STANDS, checked 2026-08-17 rather than
+// assumed, because a comment that guesses at the other half of the delivery is how the [Lava]
+// icons nearly shipped unembedded:
+//   UberServer/src/UberStrok.WebServices.AspNetCore/assets/configs/game/items.json
+//     171 WeaponItems, 2033-2037 all present. 2037 is {ID 2037, "Neon Circuit [Black]",
+//     ItemClass 3, PrefabName MachineGun}, matching the base weapon this file assumes.
+//   UberStrok.WebServices.AspNetCore/bin/Release/net6.0/assets/... (the BUILT copy the running
+//     service reads) is still at 166 and has neither 2033-2036 nor 2037, and the older
+//     UberStrok.WebServices/configs/game/items.json is at 142.
+// So the catalog row EXISTS in source and is NOT yet in the deployed build. Nothing in this file
+// depends on that -- these tables are keyed by item id and are inert for an id the server never
+// hands out -- but do not read "the client is done" as "the shop will show it".
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using UnityEngine;
+
+public static partial class WeaponSkinHelper
+{
+	// itemId -> embedded resource name (LogicalName in the .csproj).
+	public static readonly Dictionary<int, string> SkinTextures = new Dictionary<int, string>
+	{ };
+
+	/// <summary>
+	/// How a skin's flame overlay is built.
+	///
+	/// Surface was the original concept: a copy of the weapon's own mesh drawn additively over
+	/// it, so the fire sits ON the steel. Helix builds a separate sleeve of ribbons standing
+	/// off the blade and winding along it, so the fire orbits OUTSIDE the sword.
+	/// </summary>
+	/// <summary>
+	/// Surface = fire painted onto a COPY of the weapon's own geometry.
+	/// Helix   = a ribbon sleeve built around the weapon's bounding box.
+	/// Shell   = the weapon's own mesh REFERENCED (not copied) and scaled up slightly, so the
+	///           fire is the exact silhouette of the gun, just bigger. An outer flame.
+	///
+	/// SHELL IS THE ONLY MODE THAT WORKS ON A NON-CPU-READABLE MESH, and that is the whole point
+	/// of it. Surface calls WhiteVertexCopy, which reads `.vertices` and returns null on
+	/// AWP.asset / Death_Hammer.asset / ShotGun.asset / Sniper.asset (all m_IsReadable: 0), so
+	/// those weapons could never have surface fire. Shell assigns `sharedMesh = sourceMesh` -- a
+	/// REFERENCE. Nothing is read back to the CPU, so readability is irrelevant. The only mesh
+	/// data it touches is `.bounds`, which is the serialised m_LocalAABB and is always present.
+	/// </summary>
+	public enum FlameMode { Surface, Helix, Shell }
+
+	/// <summary>
+	/// How much bigger than the weapon a Shell overlay is drawn, per skin. 1.0 would sit exactly
+	/// on the surface and z-fight-free but invisible; the useful range is small.
+	/// </summary>
+	public static readonly Dictionary<int, float> SkinShellScale = new Dictionary<int, float>
+	{ };
+
+	public static readonly Dictionary<int, FlameMode> SkinFlameModes = new Dictionary<int, FlameMode>
+	{ };
+
+	// ---------------------------------------------------------------- the water shader
+	//
+	// The game's OWN flowing-water shader, used by the [Watery] set. Everything below was read
+	// out of the shipped client rather than guessed, because a wrong name here fails silently:
+	// Shader.Find returns null and the skin renders opaque with no error.
+	//
+	// Verified in the SHIPPED build, not in the source project:
+	//   * shader text lives in UberStrike_Data/resources.assets at byte offset 307673488,
+	//     length 61657, and its first line is Shader "CMune/Water/Opaque_Flowing".
+	//   * that name occurs exactly ONCE in resources.assets, and a scan for "CMune/Water/*"
+	//     returns no siblings -- so there is no second water shader to fall back to.
+	//
+	// Its Properties block, verbatim from that blob:
+	//   _MainTex        ("Base (RGB) Gloss (A)", 2D)   = "white"
+	//   _BumpMap        ("Normalmap", 2D)              = "bump"
+	//   _Caustics       ("_Caustics", 2D)              = "black"
+	//   _Cube           ("Reflection Cubemap", CUBE)   = "black"
+	//   _Color          ("Main Color", Color)          = (0, 0.313726, 0.65098, 1)
+	//   _WaterColor_Dark("Dark Water Color", Color)    = (1, 1, 1, 1)
+	//   _ReflectColor   ("Reflection Color", Color)    = (0.72549, 0.992157, 1, 0.501961)
+	//   _Specular ("_Specular", Float) = 2   _Gloss ("_Gloss", Float) = 1   _Tiling = 1.5
+	//
+	// A BARE SHADER BIND IS NOT ENOUGH, and this is the note that must survive: binding the
+	// shader without assigning textures gives _Caustics = "black", so the caustics term
+	// multiplies out to ZERO and the weapon has no caustics at all, while _Cube = "black"
+	// collapses the cubemap lerp and _WaterColor_Dark defaults to WHITE water. Nothing errors;
+	// it just renders wrong. That is the Bloodglass failure repeating -- see the 2022 note in
+	// SkinShaders, where an unassigned _Cube sampled WHITE and turned a red blade grey-pink.
+	// So SkinMaterialBindings below is load-bearing. Do not "simplify" those assignments away.
+	//
+	// The motion is free. The compiled program scrolls _MainTex at 0.050000001 and _BumpMap at
+	// 0.07 off the shader's own time input, so the water flows with NO MonoBehaviour driving it
+	// -- unlike the flame overlay, which needs WeaponFlameAnimator.
+	public const string WaterShader = "CMune/Water/Opaque_Flowing";
+
+	// Resources paths for the water assets, in the LOWERCASE form the build's index actually
+	// stores. This client keeps its Resources index in UberStrike_Data/mainData, and every
+	// entry there is lowercased even where the file on disk is mixed case -- e.g. the file is
+	// Water_A_NM.png but the index reads "items/shared/textures/water_a_nm".
+	//
+	// Lowercase is used here because it is the strictly SAFER of the two spellings: if Unity
+	// lowercases the query before lookup, a lowercase path is unchanged and matches; if it does
+	// NOT, a lowercase path still matches the lowercase index while a mixed-case one would miss.
+	// Mixed case is only safe under the first assumption, so it is not worth the risk.
+	//
+	// All five confirmed present in mainData's index (one hit each):
+	//   items/shared/textures/water_a_nm      items/shared/textures/water_b_nm
+	//   items/shared/textures/caustics_a_dm   items/shared/cubemaps/studio_a
+	//   items/shared/shaders/water_flowing_a
+	private const string WaterMainTexPath  = "items/shared/textures/water_a_nm";
+	private const string WaterBumpMapPath  = "items/shared/textures/water_b_nm";
+	private const string WaterCausticsPath = "items/shared/textures/caustics_a_dm";
+	private const string WaterCubePath     = "items/shared/cubemaps/studio_a";
+	private const string WaterShaderPath   = "items/shared/shaders/water_flowing_a";
+
+	/// <summary>
+	/// Optional per-skin SHADER override, in preference order, with the first one that
+	/// resolves winning.
+	///
+	/// Order is not cosmetic. Glass-Hangar is the better look -- it carries a reflection
+	/// cubemap, which sells ice far better than a specular highlight -- but it is referenced
+	/// by ZERO item materials in the client, so nothing guarantees it survived shader
+	/// stripping into the shipped build, and Shader.Find would then return null. Transparent/
+	/// Diffuse is referenced by shipped gear (bandannahead, beardandmo, cap, juliaenzo) and
+	/// by the Wrecker's own glass submaterial, so it is certain to be present. The Wrecker is
+	/// also the precedent that this works at all: it already ships an alpha-blended
+	/// submaterial on a weapon the player holds.
+	///
+	/// Note both are Lambert -- there is no alpha-BLENDED bumped specular anywhere in the
+	/// client's 63 shaders, only a cutout one, which does binary on/off and reads as holes
+	/// rather than glass. So a see-through blade costs us the normal map, and the surface
+	/// relief has to live in the painted colour instead. That trade is deliberate.
+	/// </summary>
+	public static readonly Dictionary<int, string[]> SkinShaders = new Dictionary<int, string[]>
+	{ };
+
+	/// <summary>
+	/// Second route to a skin's shader, by Resources path, tried ONLY after every name in
+	/// SkinShaders has failed Shader.Find.
+	///
+	/// Not redundant with the name chain, and not a different look. Shader.Find only returns
+	/// shaders that made it into the build, and this one is reachable BOTH ways: its text is in
+	/// resources.assets, and the build's Resources index lists "items/shared/shaders/
+	/// water_flowing_a". Being in Resources is also why it is certain to have survived shader
+	/// stripping at all -- unlike Glass-Hangar, which no item material references and which the
+	/// 2022 note above had to hedge against.
+	///
+	/// So this reaches the IDENTICAL asset by a second mechanism, which is the only kind of
+	/// fallback worth having when the alternative would silently change what the skin looks like.
+	/// </summary>
+	public static readonly Dictionary<int, string> SkinShaderResources = new Dictionary<int, string>
+	{ };
+
+	// ------------------------------------------------- extra per-skin material bindings
+
+	/// <summary>
+	/// One texture to assign after the shader swap. <c>IsCubemap</c> is not cosmetic: a cubemap
+	/// is NOT a Texture2D, so Resources.Load&lt;Texture2D&gt; on one returns NULL and the
+	/// property would end up unassigned -- the exact silent half-state this file keeps hitting.
+	/// </summary>
+	public struct TextureBinding
+	{
+		public string Property;
+		public string ResourcePath;
+		public bool IsCubemap;
+
+		public TextureBinding(string property, string resourcePath, bool isCubemap)
+		{
+			Property = property;
+			ResourcePath = resourcePath;
+			IsCubemap = isCubemap;
+		}
+	}
+
+	public struct ColorBinding
+	{
+		public string Property;
+		public Color Value;
+
+		public ColorBinding(string property, Color value)
+		{
+			Property = property;
+			Value = value;
+		}
+	}
+
+	public struct FloatBinding
+	{
+		public string Property;
+		public float Value;
+
+		public FloatBinding(string property, float value)
+		{
+			Property = property;
+			Value = value;
+		}
+	}
+
+	/// <summary>
+	/// Everything a skin needs assigned onto its material AFTER the shader is bound.
+	///
+	/// This did not exist before: ApplyToWeapon only ever set _MainTex, which is all a
+	/// re-texture on the stock Bumped Specular shader needs. A shader with ten more properties
+	/// needs all of them, and leaving any one unset is silent -- it takes the value from the
+	/// shader's Properties block and renders something plausible but wrong.
+	/// </summary>
+	public class MaterialBindings
+	{
+		public TextureBinding[] Textures;
+		public ColorBinding[] Colors;
+		public FloatBinding[] Floats;
+	}
+
+	/// <summary>
+	/// The [Watery] material, copied from the two materials that ALREADY ship with this shader
+	/// rather than invented:
+	///
+	///   Resources/items/weapons/splattergun_manowar/res/res/SpatterGun_ManOWar_Water_A.mat
+	///   Resources/items/gear/holo_hydra/res/res/Holo_Hydra.mat
+	///
+	/// Both bind the same four textures by GUID, resolved through their .meta files:
+	///   _MainTex  010e39f5b75d51b479ea93966b1a5091 -> items/shared/textures/Water_A_NM.png
+	///   _BumpMap  f951481b5ecdcba42b9582f464c29b11 -> items/shared/textures/Water_B_NM.png
+	///   _Caustics fd207a9c99c672249975c3b055ede01a -> items/shared/textures/Caustics_A_DM.png
+	///   _Cube     b63410db318971340a5fb77d191c6193 -> items/shared/cubemaps/Studio_A.png
+	///
+	/// Note _MainTex is a NORMAL MAP (Water_A_NM), not colour. That is not a mistake in the
+	/// shipped materials -- it is how this shader works, and it is why binding it replaces the
+	/// painted art instead of tinting it.
+	///
+	/// COLOURS COME FROM THE WEAPON MATERIAL, NOT FROM THE SHADER DEFAULTS, and the difference
+	/// is large enough to matter:
+	///   _WaterColor_Dark  shipped (0, 0.153, 0.478)  vs  shader default (1, 1, 1) -- the
+	///                     default is WHITE water, i.e. no dark tone at all.
+	///   _Color            shipped (0, 0.439, 1)      vs  default (0, 0.314, 0.651)
+	///   _ReflectColor     shipped (0.420, 0.839, 1, 0.502) vs default (0.725, 0.992, 1, 0.502)
+	/// </summary>
+	/// <summary>
+	/// The four textures this shader needs, shared by EVERY skin that binds it.
+	///
+	/// Hoisted out of WaterBindings when the [Lava] set arrived. Lava is the same shader driven by
+	/// the same water assets with three colours changed, so a second copy of these four lines
+	/// would be four more things to keep in sync and one more place for the _Cube subtlety below
+	/// to be got wrong -- the same reasoning that has the four [Watery] skins share one
+	/// MaterialBindings instance.
+	///
+	/// DECLARED BEFORE both tables that use it, and it must stay that way: C# runs static field
+	/// initializers in textual order, so moving this below them would leave Textures NULL, and a
+	/// null Textures array is silent -- ApplyShaderOverride's preflight (:1243) simply resolves
+	/// nothing, ApplyMaterialBindings (:1374) binds nothing, and the weapon draws with _MainTex
+	/// white, _Caustics black and _Cube black. Wrong-but-plausible, with nothing in the log.
+	/// </summary>
+	private static readonly TextureBinding[] WaterTextureSet = new TextureBinding[]
+	{
+		new TextureBinding("_MainTex",  WaterMainTexPath,  false),
+		new TextureBinding("_BumpMap",  WaterBumpMapPath,  false),
+		new TextureBinding("_Caustics", WaterCausticsPath, false),
+		// CUBE, not 2D. Studio_A.png imports with textureType 5 / generateCubemap 5 and its
+		// .meta recycles fileID 8900000 as "generatedCubemap", so the asset Resources.Load
+		// returns is a Cubemap. Asking for a Texture2D here gets null and _Cube stays at
+		// "black", which collapses the reflection lerp -- silently.
+		new TextureBinding("_Cube",     WaterCubePath,     true),
+	};
+
+	private static readonly MaterialBindings WaterBindings = new MaterialBindings
+	{
+		Textures = WaterTextureSet,
+
+		Colors = new ColorBinding[]
+		{
+			// Straight from SpatterGun_ManOWar_Water_A.mat, the WEAPON material.
+			new ColorBinding("_Color",           new Color(0f, 0.4392157f, 1f, 1f)),
+			new ColorBinding("_WaterColor_Dark", new Color(0f, 0.15294118f, 0.47843137f, 1f)),
+			// This one must also survive the force-set further down -- see ApplyShaderOverride.
+			new ColorBinding("_ReflectColor",    new Color(0.41960785f, 0.8392157f, 1f, 0.5019608f)),
+		},
+
+		Floats = new FloatBinding[]
+		{
+			// _Tiling 0.5 is SpatterGun_ManOWar_Water_A's value; Holo_Hydra uses 1.5. Taking the
+			// weapon's number deliberately: 1.5 is authored against a character model's UVs and
+			// 0.5 against a gun's, and 0.5 vs 1.5 is a 3x UV-scale difference, so it visibly
+			// changes the size of the water's features on a weapon. These four skins are guns.
+			new FloatBinding("_Tiling",   0.5f),
+			// _Gloss 1.0 / _Specular 2.0, again the weapon's values. Holo_Hydra runs _Gloss 0.9.
+			// The compiled program raises the specular exponent to 128 * _Gloss, so 1.0 is the
+			// tightest, hardest highlight the shader offers -- which is what reads as wet.
+			new FloatBinding("_Gloss",    1.0f),
+			new FloatBinding("_Specular", 2.0f),
+
+			// THESE TWO ARE NOT IN THE SHIPPED SHADER, and that is a measured finding, not a
+			// guess: a scan of all 61657 bytes of the shader blob returns ZERO occurrences of
+			// either name, while every real property (_Tiling, _Gloss, _Cube, ...) occurs 5-16
+			// times. The caustics tiling is folded into the compiled code as the literal 3.375
+			// (= 1.5 * 2.25) instead of being a uniform.
+			//
+			// They survive in Holo_Hydra.mat only as stale authoring-time leftovers -- Unity
+			// keeps serialised properties a shader no longer declares. Kept here so the table
+			// is a complete record of the authored material, and so that if this shader is ever
+			// replaced by the authoring version they light up on their own. The HasProperty
+			// guard in ApplyMaterialBindings skips them and says so ONCE, at Log rather than
+			// LogWarning: a property the shader does not declare is expected here, and must not
+			// be confused with an asset that failed to load, which is fatal.
+			new FloatBinding("_CausticsTiling", 2.25f),
+			new FloatBinding("_CausticsDeform", 0.1f),
+		},
+	};
+
+	/// <summary>
+	/// The [Lava] material -- "moltencore", ids 2033-2036. Same shader as [Watery], same four
+	/// textures, THREE COLOURS APART. Nothing else differs, and that is the whole design.
+	///
+	/// It works because _MainTex on this shader is a NORMAL MAP, not albedo (see WaterBindings).
+	/// The colour of the surface comes entirely from _Color, _WaterColor_Dark and _ReflectColor,
+	/// so re-tinting those three turns the same flowing liquid from water into molten rock
+	/// without touching a single texel. The motion, the caustics and the cubemap highlight are
+	/// unchanged and still free -- the compiled program scrolls _MainTex and _BumpMap off its own
+	/// time input, with no MonoBehaviour driving it.
+	///
+	/// The three colours, as authored by the user:
+	///   _Color            #000000  (0, 0, 0)                    -- black rock between the cracks
+	///   _WaterColor_Dark  #1E0600  (0.117647, 0.023529, 0)      -- barely-lit crust in the dark
+	///   _ReflectColor     #FF6A0F  (1, 0.415686, 0.058824)      -- the filaments and grazing rim
+	///
+	/// _ReflectColor CARRIES THIS SKIN. Both other colours are at or near black, so the diffuse
+	/// term contributes almost nothing; what the player sees is the reflection term,
+	/// texCUBE(_Cube, worldRefl) * _ReflectColor, which fires where the surface turns away from
+	/// the eye. That is why the orange lands as glowing filaments and a hot grazing rim over a
+	/// black body rather than as an orange gun.
+	///
+	/// ITS ALPHA IS 0.5019608, NOT 1, and that is not a rounding of the user's #FF6A0F. Alpha is
+	/// not opacity on this property -- ApplyShaderOverride quotes the shader as
+	/// o.Albedo = c.rgb + reflcol.rgb * reflcol.a, so alpha is the STRENGTH of the reflection.
+	/// 0.5019608 is the shipped SpatterGun_ManOWar_Water_A value that [Watery] uses, and "only
+	/// the three colours differ" means the strength does not. Setting it to 1 would double the
+	/// only term this skin has and clip the filaments to flat white-orange.
+	///
+	/// Binding _ReflectColor here also SUPPRESSES the icy default further down: the guard at
+	/// :1303 asks whether the skin bound the property itself, and a skin that did not would be
+	/// overwritten with (0.55, 0.75, 0.95, 0.08) -- a blue tint at a sixth of the strength, which
+	/// on this palette would erase the skin entirely. That guard is load-bearing here, not
+	/// incidental.
+	///
+	/// NO SkinFlames ENTRY, deliberately and by explicit decision: lava ships BARE so QA judges
+	/// the colour treatment on its own. Do not "finish" this set by adding fire to it -- the
+	/// fire's absence is the thing being tested. (Note also that the flame overlay would land on
+	/// the same 3.9%-coverage / MAE 1.59 measurement recorded in SkinFlames for 2025, since these
+	/// sit on the same four base weapons.)
+	///
+	/// NO SkinTextures ENTRY EITHER, and this needs no art on disk. ApplyToWeapon reads
+	/// GetSkinTexture at :1109 and gets null for an unregistered id, but the early-return at :1111
+	/// is `tex == null && !hasBindings` -- having an entry in SkinMaterialBindings is itself the
+	/// qualification, so the method runs on to ApplyShaderOverride and binds normally. The only
+	/// thing tex would have done is the _MainTex assignment at :1160-1162, and ApplyMaterialBindings
+	/// overwrites that with Water_A_NM at :1384 regardless. A painted .jpg for these ids would be
+	/// loaded, assigned, and thrown away in the same frame.
+	/// </summary>
+	private static readonly MaterialBindings LavaBindings = new MaterialBindings
+	{
+		// The identical four assets [Watery] binds -- shared, not copied. See WaterTextureSet.
+		Textures = WaterTextureSet,
+
+		Colors = new ColorBinding[]
+		{
+			// #000000. Black, exactly: the crust is unlit rock and any lift here greys the whole
+			// weapon, because this is the base colour the water term is tinted by.
+			new ColorBinding("_Color",           new Color(0f, 0f, 0f, 1f)),
+			// #1E0600 = 30/255, 6/255, 0/255.
+			new ColorBinding("_WaterColor_Dark", new Color(0.11764706f, 0.023529412f, 0f, 1f)),
+			// #FF6A0F = 255/255, 106/255, 15/255, at [Watery]'s reflection STRENGTH -- see above.
+			new ColorBinding("_ReflectColor",    new Color(1f, 0.41568628f, 0.05882353f, 0.5019608f)),
+		},
+
+		Floats = new FloatBinding[]
+		{
+			// Identical to [Watery]: same shader, same weapons, same UVs. _Tiling 0.5 is authored
+			// against a gun rather than a character, and _Gloss 1.0 raises the specular exponent
+			// to 128 -- the tightest highlight the shader offers, which reads as wet on water and
+			// as a molten sheen here.
+			new FloatBinding("_Tiling",   0.5f),
+			new FloatBinding("_Gloss",    1.0f),
+			new FloatBinding("_Specular", 2.0f),
+
+			// _CausticsTiling and _CausticsDeform are NOT carried over from WaterBindings, where
+			// they exist only as a record of the authored material. This shipped shader declares
+			// neither (measured: zero occurrences in all 61657 bytes of the blob), so listing them
+			// would bind nothing and only add a second skipped-property line to the log for a set
+			// that has no story to tell about caustics.
+		},
+	};
+
+	/// <summary>
+	/// The icy glass material for 2023 AWP [Permafrost] and 2024 Icebreaker.
+	///
+	/// THIS TABLE, NOT THEIR .jpg FILES, IS THE ONLY THING THAT CAN CHANGE HOW THESE TWO LOOK,
+	/// and that is the finding this round paid for. The request was "keep the transparency, make
+	/// them icier", which sounds like an art job and is not one. Read out of the SHIPPED binary
+	/// rather than the source project -- Glass-Hangar's text sits in sharedassets16.assets, and
+	/// its ForwardBase fragment program is thirteen instructions:
+	///
+	///     TEX R1.x, fragment.texcoord[0], texture[0], 2D;   // _MainTex -- .x, RED, ONLY
+	///     MUL R2.xyz, R2, c[2];                             // _LightColor0 * _Color  (no texture)
+	///     ADD R0.w, -R1.x, c[4].x;                          // 1 - tex.r
+	///     MUL R0.xyz, R0, c[3];                             // cube * _ReflectColor.rgb
+	///     MAD result.color.xyz, R1.x, R0, R2;
+	///     MUL result.color.w, R0, c[2];                     // alpha = (1 - tex.r) * _Color.a
+	///
+	/// So on this shader the painted RGB is NEVER the albedo; only the RED channel is sampled at
+	/// all; the sheet's green, blue and alpha are dead; and transparency is 1 - RED. A colour
+	/// re-grade of those two .jpg files is invisible in game. That was measured as well as
+	/// derived: a deliberately extreme icy grade, written losslessly so red stayed bit-exact,
+	/// changed 181 pixels of 786432 at max 7/255 -- against a control of the same config captured
+	/// twice, which differs by 135 pixels at max 3. The grade is at the capture noise floor.
+	///
+	/// TWO CORRECTIONS TO WHAT THIS FILE SAID BEFORE, both from that program text:
+	///
+	///   * The note in ApplyShaderOverride quotes the shader as
+	///     `o.Albedo = c.rgb + reflcol.rgb * reflcol.a`. That is the surface-shader SOURCE form.
+	///     The shipped compiled program never reads _ReflectColor.a -- so the icy default's
+	///     alpha 0.08 has always been inert, and the reflection wash has always been running at
+	///     full (0.55, 0.75, 0.95). Nothing to fix; a lot to know before tuning alpha.
+	///
+	///   * Glass-Hangar's Properties block advertises _MainTex as "Base (RGB) Trans (A)". It
+	///     lies. Alpha is unread and transparency comes from RED. This is very likely the real
+	///     reason 2022 Bloodglass was wrong for five attempts: a red skin is exactly the one
+	///     whose red channel is high everywhere, i.e. the one this shader renders nearly opaque
+	///     and nearly unlit.
+	///
+	/// WHAT THE VALUES DO. _Color is the whole diffuse term, multiplied by the light and by
+	/// nothing else; _ReflectColor tints the cubemap term, which is gated by tex.r so it lands on
+	/// the bright painted areas. Together they are the entire palette of the skin.
+	///   _Color        (0.78, 0.88, 0.96)  a cool near-white body, cooler than the (1,1,1) default
+	///   _ReflectColor (0.35, 0.72, 1.00)  a genuinely blue reflection, against the icy default's
+	///                                     much paler (0.55, 0.75, 0.95)
+	/// Previewed: saturation 0.222 -> 0.344 on the AWP, blue-minus-red +41 -> +63, and the
+	/// shotgun in particular starts reading as translucent blue ice rather than as a pale wash.
+	///
+	/// _Color.a IS 1.0 AND THAT IS SAFE, verified rather than assumed -- alpha is
+	/// (1 - tex.r) * _Color.a, and Glass-Hangar's Properties block declares
+	/// `_Color ("Main Color", Color) = (1,1,1,1)`, which is the value these skins have been
+	/// running on. So binding 1.0 changes transparency by exactly nothing. Any OTHER value here
+	/// would be the one way this entry could break the thing it must not break.
+	///
+	/// HONEST LIMIT, so nobody re-litigates it later: hue barely moves (202.3 -> 202.1 degrees);
+	/// what moves is saturation. That is the signature of a filter, not of ice. Because _Cube is
+	/// never assigned and samples WHITE, the wash is view-INDEPENDENT -- there is not one glint on
+	/// either weapon at any angle. This is a well-chosen blue tint on a transparent gun. Real ice
+	/// with depth needs _Cube bound to a cubemap (items/shared/cubemaps/studio_a is already used
+	/// by [Watery], and TextureBinding.IsCubemap exists for exactly this), which is a bigger
+	/// change and wants its own preview pass with a real cubemap sampler in the studio.
+	///
+	/// NO Textures ARRAY, deliberately: leaving it null makes ApplyShaderOverride's preflight
+	/// resolve nothing and ApplyMaterialBindings skip the texture loop, which is correct -- these
+	/// skins DO use their painted sheet, through its red channel, and must not have _MainTex
+	/// replaced the way the [Watery] set does.
+	/// </summary>
+	private static readonly MaterialBindings GlassIceBindings = new MaterialBindings
+	{
+		Colors = new ColorBinding[]
+		{
+			new ColorBinding("_Color",        new Color(0.78f, 0.88f, 0.96f, 1f)),
+			// Binding this also SUPPRESSES the icy default in ApplyShaderOverride, via the
+			// BindsColor guard -- which is the intended mechanism, not a side effect.
+			new ColorBinding("_ReflectColor", new Color(0.35f, 0.72f, 1.00f, 0.5019608f)),
+		},
+	};
+
+	/// <summary>
+	/// 2038 / 2039 -- "glassy look-through but not shiny". The QA brief for the matte variants.
+	///
+	/// THE SHINE AND THE TRANSPARENCY ARE DIFFERENT TERMS, which is why this is two numbers and
+	/// not an art change. The shipped Glass-Hangar program, transcribed from the client's own
+	/// compiled ARBfp1.0 (sharedassets16.assets, offset 17,882,095, length 144,424), is:
+	///
+	///     rgb   = _LightColor0 * _Color  +  tex.RED * (cube * _ReflectColor.rgb)
+	///     alpha = (1 - tex.RED) * _Color.a
+	///
+	/// So the "shiny" is entirely the second rgb term, and it is not a reflection at all: _Cube is
+	/// unassigned on these skins, an unassigned samplerCUBE reads WHITE, so it is a flat
+	/// view-independent white gloss scaled by _ReflectColor. That is exactly the thing QA called
+	/// shiny -- it does not move with the camera, so it reads as a sheen sitting ON the glass
+	/// rather than as a reflection in it.
+	///
+	/// Transparency does not pass through _ReflectColor at any point. It is the red channel of the
+	/// painted sheet, inverted, times _Color.a. So driving _ReflectColor to near-black removes the
+	/// gloss and provably CANNOT affect how see-through the weapon is. One variable moved.
+	///
+	/// Not exactly zero: 0.04/0.06/0.08 leaves a trace of the term alive, so the bright-red areas
+	/// of the sheet still separate very slightly from the dark ones and the glass keeps some
+	/// internal structure. At a true 0 the body flattens to a single translucent tone.
+	///
+	/// THIS IS THE SAME KNOB BLOODGLASS SITS ON, at the other end. Every see-through skin in the
+	/// file is one number apart, which is worth seeing as a ladder before anyone re-tunes:
+	///     2022 Bloodglass   _ReflectColor 0.95 / 0.55 / 0.52   warm, strong gloss (SkinReflectTints)
+	///     icy default       0.55 / 0.75 / 0.95   cool, strong gloss (ApplyShaderOverride fallback)
+	///     2023/2024 GlassIce 0.35 / 0.72 / 1.00  cool, medium gloss
+	///     2038/2039 (here)  0.04 / 0.06 / 0.08   gloss essentially off
+	/// So "glassy but not shiny" is not a different technique from Bloodglass -- it is Bloodglass's
+	/// mechanism with the gloss term turned down. The alpha on _ReflectColor is NOT part of this:
+	/// the compiled program multiplies only .xyz, so that channel is dead on this shader and the
+	/// 0.08 / 0.502 values scattered through the file are inert.
+	///
+	/// _Color.a stays at 1.0 -- the same as 2023/2024. The brief was about shine, not about
+	/// transparency, and the see-through is already what the team wanted. If they ask for MORE
+	/// see-through later, _Color.a is the knob, and it is independent of everything above.
+	/// </summary>
+	private static readonly MaterialBindings GlassMatteBindings = new MaterialBindings
+	{
+		Colors = new ColorBinding[]
+		{
+			// WHY _Color CARRIES THE MATTE, and not _ReflectColor. Proven in game 2026-08-17 with
+			// a deliberately absurd test: _ReflectColor (1,0,0,1) turned the weapon visibly RED, so
+			// the property is live and the bindings do land -- the log confirmed both values
+			// reaching the material. The first matte attempt still looked identical to the glossy
+			// one for a reason the arithmetic hid: _Cube is unassigned, so the reflection term is a
+			// FLAT view-independent ADD, and the glossy value (0.35, 0.72, 1.00) is BLUE on a gun
+			// that is already blue-white. Subtracting blue from blue moves the picture almost not
+			// at all. The red test was visible only because red is a hue the weapon does not
+			// already carry.
+			//
+			// So what reads as "shiny" here is not a highlight -- there is no cubemap to reflect
+			// and nothing moves with the camera. It is FLAT BRIGHTNESS: a high _Color plus that
+			// constant add, which together wash the surface toward uniform pale. Matte therefore
+			// means turning the brightness down and letting the painted texture's own contrast
+			// come back, which is what 0.78 -> 0.56 does.
+			//
+			// Alpha 1.0 -> 0.86 also answers the "glassy look through" half: alpha is
+			// (1 - tex.RED) * _Color.a, so this is the one knob that makes the weapon more
+			// see-through without touching the art.
+			new ColorBinding("_Color",        new Color(0.56f, 0.64f, 0.72f, 0.86f)),
+			new ColorBinding("_ReflectColor", new Color(0.05f, 0.07f, 0.09f, 0.5019608f)),
+		},
+	};
+
+	/// <summary>
+	/// Per-skin material bindings, applied after the shader override binds.
+	///
+	/// All four [Watery] skins share ONE instance rather than four copies: they differ only in
+	/// which weapon they sit on, and four copies of the same numbers would only be four things
+	/// to keep in sync -- the same reasoning as 2021 sharing 2020's texture.
+	/// </summary>
+	public static readonly Dictionary<int, MaterialBindings> SkinMaterialBindings = new Dictionary<int, MaterialBindings>
+	{ };
+
+	/// <summary>
+	/// Optional per-skin animated flame overlay: a second copy of the weapon's own mesh,
+	/// drawn additively over the top with its UVs scrolling.
+	///
+	/// Additive is why the sheet is black-backed. "Particles/Additive" adds its texture to
+	/// whatever is behind it, so black contributes nothing and brightness IS opacity -- the
+	/// black background is the transparency, not a placeholder for it. A sheet whose
+	/// background sits just above zero glows as a permanent haze over the whole weapon.
+	/// </summary>
+	/// <summary>
+	/// Per-skin tint for Glass-Hangar's cubemap reflection term. Absent = the icy default.
+	///
+	/// Exists because 2022 Bloodglass rendered BLUE in game despite a red texture: the single
+	/// hardcoded cool tint was laying a blue cast over every see-through skin, which is
+	/// invisible on the ice ones and fatal on a red one.
+	/// </summary>
+	public static readonly Dictionary<int, Color> SkinReflectTints = new Dictionary<int, Color>
+	{ };
+
+	/// <summary>
+	/// Per-skin flame tint, overriding the per-MODE default. Absent = the mode default.
+	///
+	/// Particles/Additive computes 2 * vertexColour * tint * texture, so the peak add is twice
+	/// these numbers.
+	/// </summary>
+	public static readonly Dictionary<int, Color> SkinFlameTints = new Dictionary<int, Color>
+	{ };
+
+	/// <summary>
+	/// Per-skin overrides for the flame sleeve's geometry.
+	///
+	/// Exists for the weapons whose meshes are NOT CPU-readable -- the AWP and the Death
+	/// Hammer. Surface mode copies the weapon's own geometry, and on those two `.vertices`
+	/// throws, so it is impossible there by any route rather than merely broken. The sleeve
+	/// is built from the bounding box, which IS readable, so it is the only way to put fire
+	/// on those weapons at all.
+	///
+	/// The defaults orbit a katana at 2x its half-thickness with two narrow strands. Pulled
+	/// in tight with more, wider strands, the same geometry stops reading as fire circling
+	/// the weapon and starts reading as fire clinging to it -- which is what Surface mode
+	/// gives on the weapons that can support it.
+	/// </summary>
+	public struct SleeveSpec
+	{
+		public float RadiusMult;   // multiple of the mesh's half-thickness
+		public int Ribbons;        // how many strands around the circumference
+		public float RibbonArc;    // radians of arc each strand covers
+		public float Twist;        // turns along the weapon's length
+		public float Start;        // 0 = butt, 1 = tip: where the sleeve begins
+		public float MaxLenFrac;   // radius ceiling as a fraction of length
+		public float VRepeat;      // how many times the flame sheet tiles ALONG the sleeve
+	}
+
+	public static readonly Dictionary<int, SleeveSpec> SkinSleeves = new Dictionary<int, SleeveSpec>
+	{ };
+
+	public static readonly Dictionary<int, string> SkinFlames = new Dictionary<int, string>
+	{ };
+
+	// Shop icons. ProxyItem loads the BASE weapon's "<prefabPath>-Icon" from Resources and we
+	// replace it by item id, so an id missing here silently shows the base weapon's icon --
+	// or nothing, since the five stock weapons (TheSplatbat, MachineGun, SniperRifle, Cannon,
+	// ShotGun) ship no icon at all and fall back to a per-class default.
+	//
+	// All ten are rendered by tools/render_weapon_icon.py in uberstrike-patcher-workshop, to
+	// the convention measured off the 133 stock 48x48 shop icons rather than to taste:
+	// 48x48 opaque RGBA on the recovered plate, weapon bbox 0.923 of the width, centroid at
+	// (0.533, 0.459), long axis near horizontal, and the muzzle pointing LEFT, which 115 of
+	// 115 unambiguously directional stock icons do.
+	public static readonly Dictionary<int, string> IconTextures = new Dictionary<int, string>
+	{ };
+
+	// Optional per item tracer: gives a weapon a travelling muzzle to hitpoint beam it
+	// would not otherwise have, in a custom colour. Purely cosmetic, but note it IS
+	// visible in gameplay rather than being a pure re-texture like everything above.
+	public struct TracerSpec
+	{
+		public ParticleConfigurationType Effect;
+		public Color Start;
+		public Color End;
+
+		// Material _TintColor, deliberately separate from the line colours because it is
+		// MULTIPLIED by the trail texture. SRParticleLanceTrail5 averages RGB 144,91,45,
+		// so its blue channel is only about 0.18 against red at 0.56 and an even handed
+		// pink tint comes out RED. Channels are compensated roughly target/texture, which
+		// is why blue exceeds 1.0. Unity allows that for material colours.
+		public Color MatTint;
+	}
+
+	public static readonly Dictionary<int, TracerSpec> TracerOverrides = new Dictionary<int, TracerSpec>
+	{ };
+
+	/// <summary>
+	/// Optional per-skin recolour of the weapon's own muzzle effects.
+	///
+	/// READ THE ISOLATION ARGUMENT BEFORE ADDING A ROW. Custom muzzle FX was tried across the
+	/// whole set once before and reverted, and the recoverable history says the thing that was
+	/// disliked was a BUG rather than a feature: ApplyToWeapon used to assign the skin texture to
+	/// every child Renderer, so the gun's diffuse landed on the additive muzzle quad and the flash
+	/// rendered as a bright rectangle of UV atlas. There is no prior per-skin mechanism to
+	/// resurrect and no prior tuning to inherit -- this is new, and it is deliberately narrow.
+	///
+	/// Every field here is written through a PER-COMPONENT property, never through a material:
+	///
+	///   * Light.color is a component field. MuzzleLightShining.anim animates m_Intensity and
+	///     m_Range and NEVER colour (classID 108, checked), so the animation and this assignment
+	///     do not fight, and no shared asset is involved at all.
+	///
+	///   * ParticleSystem.startColor is a component property that multiplies the material
+	///     per-particle. That matters more than it looks: FireBall.mat is referenced by THIRTY-ONE
+	///     prefabs -- every AK47, M4, AWP, Beretta, ExplosiveShotgun, SniperMSR and the cannon
+	///     explosion -- and Flare_Flare.mat by all five AWP variants. A sharedMaterial.SetColor
+	///     here would repaint every one of them for every player in the match. startColor touches
+	///     neither. If anyone ever "simplifies" this into a material write, that is the damage.
+	///
+	/// Applied once at skin time rather than at fire time, which is enough: startColor affects
+	/// particles emitted AFTER the write, and this runs long before the first shot. It does mean
+	/// the tint is lost if anything re-instantiates the particle system.
+	/// </summary>
+	public struct MuzzleTintSpec
+	{
+		public bool HasLight;
+		public Color LightColour;
+		public bool HasParticles;
+		public Color ParticleTint;
+		/// <summary>Exact child GameObject names to tint. Named, not "all", on purpose.</summary>
+		public string[] ParticleObjects;
+		/// <summary>
+		/// Renderers to tint through their material's _TintColor, by exact GameObject name.
+		///
+		/// THIS IS THE ONE THAT ACTUALLY SHOWS ON THE AWP, and it took four builds and three
+		/// in-game tests to establish, all logged. The prefab reading said the muzzle FX was
+		/// "a light plus four particle systems", so the first three attempts tinted Sfx and
+		/// Spark. Both exist, both are Particles/Additive, both took the tint -- and nothing
+		/// changed on screen, because THE RUNNING GAME HAS NO MuzzleParticleSystem COMPONENT
+		/// ON EITHER OF THEM. Enumerating BaseWeaponEffect under the live weapon returns only
+		/// WeaponShootAnimation, MuzzleLight and BulletTrail, so nothing ever calls Play() on
+		/// those two emitters and they never emit a particle.
+		///
+		/// BulletTrail (on SplatterTrail, material Particles/Additive) is the effect that
+		/// actually fires: OnShoot enables its renderers, plays a clip, and a coroutine
+		/// disables them ~0.1s later. That short additive flash at the muzzle is what a player
+		/// sees and calls the muzzle flash.
+		/// </summary>
+		public string[] TintRenderers;
+	}
+
+	public static readonly Dictionary<int, MuzzleTintSpec> MuzzleTints = new Dictionary<int, MuzzleTintSpec>
+	{ };
+
+	private static readonly Dictionary<int, Texture2D> _skinCache = new Dictionary<int, Texture2D>();
+	private static readonly Dictionary<int, Texture2D> _iconCache = new Dictionary<int, Texture2D>();
+
+	private const string ResourcePrefix = "WeaponSkins.";
+
+	// Skins load from embedded resources only. No disk/folder fallback.
+	private static byte[] ReadEmbedded(string fileName)
+	{
+		string resource = ResourcePrefix + fileName;
+		try
+		{
+			Assembly asm = Assembly.GetExecutingAssembly();
+			using (Stream s = asm.GetManifestResourceStream(resource))
+			{
+				if (s == null)
+					return null;
+
+				// Read in a loop rather than one Read call: Stream.Read is permitted to return
+				// fewer bytes than asked for, and Stream.CopyTo does not exist on the .NET 3.5
+				// profile this client compiles against.
+				byte[] buffer = new byte[s.Length];
+				int read = 0;
+				while (read < buffer.Length)
+				{
+					int n = s.Read(buffer, read, buffer.Length - read);
+					if (n <= 0)
+						break;
+					read += n;
+				}
+				if (read != buffer.Length)
+				{
+					Debug.LogError("WeaponSkinHelper: short read on embedded " + resource
+						+ " (" + read + " of " + buffer.Length + " bytes)");
+					return null;
+				}
+				return buffer;
+			}
+		}
+		catch (Exception e)
+		{
+			Debug.LogError("WeaponSkinHelper: could not read embedded " + resource + ": " + e.Message);
+			return null;
+		}
+	}
+
+	// JPEG colour + separate .alpha.png mask, or a single RGBA PNG. Texture2D.LoadImage
+	// handles PNG/JPEG on Unity 4.6.5, mipmaps off.
+	private static Texture2D LoadSkinFile(string fileName)
+	{
+		// Preferred layout: colour as JPEG, specular mask as a separate lossless PNG.
+		//
+		// A 2048 skin is 5.8-7.3 MB as RGBA PNG because PNG is lossless and this art is
+		// dense AI-generated detail with little to compress. The same colour at JPEG q92
+		// (chroma subsampling OFF - 4:2:0 would smear the colour and is exactly what
+		// wrecks textures) measures 41.9-45.2 dB PSNR against the original, roughly 1%
+		// average per-channel error, for 5.4-7.5x less data.
+		//
+		// The alpha channel is NOT compressed. It carries the specular mask composited
+		// from the base weapon, which is what makes these read as metal rather than flat
+		// paint, so it stays bit-for-bit lossless in its own greyscale PNG.
+		//
+		// Falls back to a single RGBA PNG when no pair is present, so both layouts work
+		// and a skin can be switched over one at a time.
+		string stem = Path.GetFileNameWithoutExtension(fileName);
+		string jpegName = stem + ".jpg";
+		string maskName = stem + ".alpha.png";
+
+		byte[] colourBytes = ReadEmbedded(jpegName);
+		if (colourBytes != null)
+		{
+			Texture2D colour = DecodeTexture(colourBytes, jpegName);
+			if (colour == null)
+				return null;
+
+			byte[] maskBytes = ReadEmbedded(maskName);
+			if (maskBytes == null)
+				return colour; // colour-only skin, e.g. one with no specular mask
+
+			Texture2D maskTex = DecodeTexture(maskBytes, maskName);
+			if (maskTex == null)
+				return colour;
+
+			if (maskTex.width != colour.width || maskTex.height != colour.height)
+			{
+				Debug.LogError("WeaponSkinHelper: alpha mask size " + maskTex.width + "x" + maskTex.height
+					+ " does not match colour " + colour.width + "x" + colour.height + " for " + stem);
+				return colour;
+			}
+
+			// Texture2D.LoadImage REPLACES the texture format to match the file it read.
+			// A JPEG has no alpha, so `colour` comes back as RGB24 and writing alpha into
+			// it is silently discarded on Apply. The mask has to go into a texture that
+			// actually has an alpha channel, so allocate a fresh RGBA32 one.
+			//
+			// This is not cosmetic. ApplyToWeapon assigns the skin to every Renderer under
+			// the weapon, which includes the muzzle flash quad. That quad is alpha blended,
+			// so a mask of mostly zero alpha leaves it invisible as intended, while a fully
+			// opaque texture turns it into a visible square. Losing the alpha here shows up
+			// on the flash long before it is noticeable on the gun body.
+			// Uberverse (2067) is a starfield-heavy skin whose fine detail aliases/shimmers under
+			// camera motion and scope zoom WITHOUT mipmaps. Enable mipmaps + trilinear for it ONLY,
+			// so the other skins keep their exact shipped (mip-free) behaviour unchanged.
+			bool uberverseMips = stem != null && stem.IndexOf("Uberverse", StringComparison.OrdinalIgnoreCase) >= 0;
+			Texture2D merged = new Texture2D(colour.width, colour.height, TextureFormat.RGBA32, uberverseMips);
+			Color[] rgb = colour.GetPixels();
+			Color[] a = maskTex.GetPixels();
+			for (int i = 0; i < rgb.Length; i++)
+				rgb[i].a = a[i].r; // greyscale mask: any channel carries the value
+			merged.SetPixels(rgb);
+			merged.Apply(uberverseMips);
+			if (uberverseMips)
+				merged.filterMode = FilterMode.Trilinear;
+			return merged;
+		}
+
+		byte[] single = ReadEmbedded(fileName);
+		if (single == null)
+		{
+			Debug.LogError("WeaponSkinHelper: skin not embedded as \"" + ResourcePrefix + fileName + "\"");
+			return null;
+		}
+		return DecodeTexture(single, fileName);
+	}
+
+	private static Texture2D DecodeTexture(byte[] data, string label)
+	{
+		if (data == null)
+			return null;
+
+		Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+		if (!tex.LoadImage(data))
+		{
+			Debug.LogError("WeaponSkinHelper: Texture2D.LoadImage failed for " + label);
+			return null;
+		}
+		return tex;
+	}
+
+	public static Texture2D GetSkinTexture(int itemId)
+	{
+		Texture2D cached;
+		if (_skinCache.TryGetValue(itemId, out cached) && cached != null)
+			return cached;
+
+		string resourceName;
+		if (!SkinTextures.TryGetValue(itemId, out resourceName))
+			return null; // not one of our skins
+
+		Texture2D tex = LoadSkinFile(resourceName);
+		if (tex != null)
+			_skinCache[itemId] = tex;
+		return tex;
+	}
+
+	public static Texture2D GetIconTexture(int itemId)
+	{
+		Texture2D cached;
+		if (_iconCache.TryGetValue(itemId, out cached) && cached != null)
+			return cached;
+
+		string resourceName;
+		if (!IconTextures.TryGetValue(itemId, out resourceName))
+			return null;
+
+		Texture2D tex = LoadSkinFile(resourceName);
+		if (tex != null)
+			_iconCache[itemId] = tex;
+		return tex;
+	}
+
+	// True for any renderer belonging to one of our procedural FX (Uberverse V1/V1.2/V2 and the
+	// three themed auras). ApplyToWeapon must never repaint these with the gun's diffuse atlas.
+	private static bool IsEffectRenderer(Renderer r)
+	{
+		return UberverseWeaponEffect.Owns(r) || UberverseV1Effect.Owns(r) || UberverseV12Effect.Owns(r)
+			|| WeaponEmitterEffect.Owns(r);
+	}
+
+	// Called from Avatar.AssignWeapon right after a weapon is attached to a player.
+	public static void ApplyToWeapon(GameObject weaponRoot, int itemId)
+	{
+		if (weaponRoot == null)
+			return;
+
+		// Independent of diffuse delivery: attaches the AWP [Uberverse] orbital-system FX for
+		// item 2067, and removes it on pooled-root skin changes. Safe no-op for every other id.
+		UberverseWeaponEffect.Apply(weaponRoot, itemId);
+		// V1 (2071) and V1.2 (2072): the earlier procedural-sphere Uberverse FX, kept selectable
+		// alongside V2 so the team can compare. Each is a no-op for every id but its own.
+		UberverseV1Effect.Apply(weaponRoot, itemId);
+		UberverseV12Effect.Apply(weaponRoot, itemId);
+		// Themed auras for the three new AWP skins. Same contract: attach on match, tear down on
+		// switch, no-op otherwise.
+		CyberNeonWeaponEffect.Apply(weaponRoot, itemId);
+		ToxicVenomWeaponEffect.Apply(weaponRoot, itemId);
+		MoltenInfernoWeaponEffect.Apply(weaponRoot, itemId);
+		// New weapons' auras (attach to their own meshes, not the AWP): Voidglass on the Wrecker,
+		// Prism Splatter on the Splattergun. No-op for every other id.
+		VoidglassWeaponEffect.Apply(weaponRoot, itemId);
+		PrismSplatterWeaponEffect.Apply(weaponRoot, itemId);
+		DragonsMawWeaponEffect.Apply(weaponRoot, itemId);
+
+		// Before the texture check: the tracer is independent of whether this item has
+		// a skin registered, so an item could have one without the other.
+		ApplyTracer(weaponRoot, itemId);
+		// Same placement, same reason: a muzzle recolour is independent of whether this item has
+		// painted art, and both hooks -- WeaponSlot.cs:106 for first person and Avatar.cs:178 for
+		// third -- come through here, so one line covers both. Forgetting one of those two is
+		// exactly how a skin ends up correct for everyone except the player holding it.
+		ApplyMuzzleTint(weaponRoot, itemId);
+
+		// A skin qualifies if it has painted art OR a material-bindings table. The second half
+		// exists for the [Watery] set: they bind the water shader, whose _MainTex is a normal
+		// map from Resources, so they never sample their painted PNG at all.
+		//
+		// Without this they would be hostage to art they do not use -- a missing 2025_MGWatery
+		// PNG would return null here, this method would return before ApplyShaderOverride ever
+		// ran, and the weapon would render STOCK with the water bind never attempted. That is
+		// the same silent failure as "the code landed, the art did not" in LoadSkinFile's note,
+		// and it would be especially misleading here because the art is not the point.
+		Texture2D tex = GetSkinTexture(itemId);
+		bool hasBindings = SkinMaterialBindings.ContainsKey(itemId);
+		if (tex == null && !hasBindings)
+			return; // not one of our skins, leave the weapon alone
+
+		Renderer[] renderers = weaponRoot.GetComponentsInChildren<Renderer>(true);
+		foreach (Renderer r in renderers)
+		{
+			if (r == null)
+				continue;
+			// Never repaint the procedural FX renderers with the gun's diffuse atlas.
+			if (IsEffectRenderer(r))
+				continue;
+
+			// Skip effect renderers. A weapon's children include its muzzle flash and shell
+			// casing, which use "Particle Add" and friends, and painting the gun's diffuse
+			// onto an additive quad makes the flash render as a bright rectangle showing a
+			// slab of the UV atlas.
+			//
+			// This stayed invisible for a long time by luck: the earlier skins carried a
+			// specular mask that is 82-84% near-zero alpha, so the additive quad multiplied
+			// out to nothing. The 4.7.1 MachineGun base's mask is 74.6% MID-range, so the
+			// same bug finally showed up as a visible square. Measured, not guessed.
+			//
+			// INSPECT VIA sharedMaterial, NOT material. This is the whole reason the flash
+			// used to vanish rather than fall back to stock.
+			//
+			// Renderer.material is not a getter: the first access INSTANTIATES a private copy
+			// of the shared material and rebinds this renderer to it. The old code read
+			// `r.material == null` and `r.material.shader` before deciding to skip, so every
+			// effect renderer on the weapon got a material instance forced onto it even though
+			// we then skipped it. That detaches the quad from the shared material the game's
+			// own effect code drives, and the flash renders as NOTHING.
+			//
+			// That is exactly the "renders as nothing rather than as the stock flash, which is
+			// more than skipping alone should do" note that sat here unexplained. Reading
+			// sharedMaterial inspects without instantiating, so a skipped renderer is left
+			// genuinely untouched and keeps its stock behaviour.
+			Material shared = r.sharedMaterial;
+			if (shared == null)
+				continue;
+			Shader sh = shared.shader;
+			if (sh != null && sh.name != null && sh.name.IndexOf("Particle", StringComparison.OrdinalIgnoreCase) >= 0)
+				continue;
+
+			// Past this point the renderer IS being skinned, so instantiating its material
+			// is intended -- and keeps the change per-instance, off the shared asset.
+			if (r.material == null)
+				continue;
+
+			// Guarded only for the bindings-without-art case above. For all 18 painted skins
+			// tex is non-null and this is byte-for-byte the behaviour it always had.
+			if (tex != null)
+			{
+				r.material.mainTexture = tex;
+				if (r.material.HasProperty("_MainTex"))
+					r.material.SetTexture("_MainTex", tex);
+			}
+
+			ApplyShaderOverride(r, itemId);
+		}
+
+		ApplyFlames(weaponRoot, itemId);
+	}
+
+	/// <summary>
+	/// Swap this renderer's shader, and assign whatever material state the new shader needs.
+	///
+	/// Renderer.material is already a per-instance copy, so assigning a shader here does not
+	/// touch the shared material and cannot leak onto another player's weapon.
+	///
+	/// Falls through the candidate list and takes the first that resolves, because
+	/// Shader.Find only finds shaders that actually made it into the build. A shader no
+	/// material references may have been stripped, and the failure is silent: the skin would
+	/// simply render opaque with no error. Logged so it is visible which one bound.
+	///
+	/// "Something other than opaque" was the original purpose and is no longer the whole of it.
+	/// The [Watery] set binds an OPAQUE shader -- what those skins need is not transparency but
+	/// a shader with ten properties instead of one, which is why SkinMaterialBindings and the
+	/// preflight below exist.
+	/// </summary>
+	private static void ApplyShaderOverride(Renderer r, int itemId)
+	{
+		string[] candidates;
+		if (!SkinShaders.TryGetValue(itemId, out candidates) || candidates == null || candidates.Length == 0)
+			return; // Length check guards candidates[0] in the messages below -- an empty array
+			        // would otherwise throw from inside the error path, of all places.
+
+		// ---- resolve the shader, by name first and by Resources path second
+		Shader s = null;
+		string how = null;
+		for (int i = 0; i < candidates.Length; i++)
+		{
+			s = Shader.Find(candidates[i]);
+			if (s != null)
+			{
+				how = "Shader.Find('" + candidates[i] + "')"
+					+ (i > 0 ? " (fell back; '" + candidates[0] + "' is not in this build)" : "");
+				break;
+			}
+		}
+
+		string shaderPath;
+		if (s == null && SkinShaderResources.TryGetValue(itemId, out shaderPath) && !string.IsNullOrEmpty(shaderPath))
+		{
+			s = Resources.Load(shaderPath, typeof(Shader)) as Shader;
+			if (s != null)
+				how = "Resources.Load('" + shaderPath + "') -- Shader.Find missed '" + candidates[0] + "'";
+		}
+
+		if (s == null)
+		{
+			// LogError, not LogWarning. The old code warned here and let the weapon render
+			// opaque, which is survivable for a glass katana but not for a skin whose ENTIRE
+			// appearance is the shader.
+			Debug.LogError("WeaponSkinHelper: skin " + itemId + " found NONE of its shaders in "
+				+ "this build (tried Shader.Find on '" + string.Join("', '", candidates) + "'"
+				+ (SkinShaderResources.ContainsKey(itemId)
+					? " then Resources.Load on '" + SkinShaderResources[itemId] + "'" : "")
+				+ "). Leaving the renderer on its previous material.");
+			return;
+		}
+
+		// ---- PREFLIGHT the textures BEFORE touching the shader.
+		//
+		// Order is the whole point. Once r.material.shader is assigned, the renderer is
+		// committed: a texture that fails to load after that leaves the property at its
+		// Properties-block default -- _Caustics "black" means NO CAUSTICS, _Cube "black"
+		// collapses the reflection -- and the weapon draws a plausible-looking half-state with
+		// nothing in the log. Resolving everything first means a failure costs the skin its
+		// shader swap and leaves the stock material intact, which is visibly "not applied"
+		// rather than "applied wrong".
+		MaterialBindings bind;
+		if (!SkinMaterialBindings.TryGetValue(itemId, out bind))
+			bind = null;
+
+		Texture[] resolved = null;
+		if (bind != null && bind.Textures != null)
+		{
+			resolved = new Texture[bind.Textures.Length];
+			for (int i = 0; i < bind.Textures.Length; i++)
+			{
+				TextureBinding tb = bind.Textures[i];
+				Texture t = LoadResourceTexture(tb);
+				if (t == null)
+				{
+					// Names the PROPERTY and the PATH. "A texture failed to load" is not
+					// actionable; "_Cube could not be loaded from items/shared/cubemaps/studio_a
+					// as a Cubemap" is.
+					Debug.LogError("WeaponSkinHelper: skin " + itemId + " NOT applied -- could not bind "
+						+ tb.Property + " from Resources path '" + tb.ResourcePath + "' as a "
+						+ (tb.IsCubemap ? "Cubemap" : "Texture2D") + ". Refusing to bind '"
+						+ s.name + "' with " + tb.Property + " unassigned, because that renders "
+						+ "a wrong-but-plausible weapon instead of an obviously unskinned one. "
+						+ "Leaving the renderer on its previous material.");
+					return;
+				}
+				resolved[i] = t;
+			}
+		}
+
+		// ---- everything resolved; commit
+		r.material.shader = s;
+
+		if (bind != null)
+			ApplyMaterialBindings(r.material, bind, resolved, itemId);
+
+		{
+			// Glass-Hangar adds a cubemap reflection on top of the albedo:
+			//
+			//     reflcol  = texCUBE(_Cube, worldRefl) * _ReflectColor
+			//     o.Albedo = c.rgb + reflcol.rgb * reflcol.a
+			//
+			// We only swap the shader, so _Cube is never assigned and samples WHITE, while
+			// _ReflectColor defaults to (1,1,1,0.5). That adds a flat +0.5 white to every
+			// pixel and washes the blade out to a featureless pale slab -- which is exactly
+			// what it did in game, with all the ice detail gone.
+			//
+			// With no cubemap to reflect there is nothing meaningful for this term to say, so
+			// it is turned down to a faint cool tint instead of being left at its default.
+			// PER SKIN, not shared. This started as one hardcoded icy value because every
+			// see-through skin was blue. 2022 Bloodglass is red, and inheriting a cool tint
+			// laid a blue cast over the whole blade -- in game it read as a BLUE sword, which
+			// is the one thing that skin must not be.
+			//
+			// GUARDED, because this block is a DEFAULT for skins that do not author a
+			// reflection colour, and the [Watery] set does author one -- (0.420, 0.839, 1,
+			// 0.502), copied from the shipped weapon material. Left ungated it would overwrite
+			// that with the icy (0.55, 0.75, 0.95, 0.08) two lines after the bindings assigned
+			// it, and alpha 0.08 against the shipped 0.502 is a SIX-FOLD cut to the reflection
+			// term -- the water's cubemap highlight would all but disappear.
+			//
+			// The guard asks "did this skin bind _ReflectColor itself?" rather than testing the
+			// item id or reordering the two blocks. That is the least surprising mechanism of
+			// the three: an id test would need editing every time a skin is added, and relying
+			// on statement order leaves a silent trap for whoever next moves these lines. This
+			// way the rule is stated where it applies and holds for any future skin.
+			if (r.material.HasProperty("_ReflectColor") && !BindsColor(bind, "_ReflectColor"))
+			{
+				Color reflect;
+				if (!SkinReflectTints.TryGetValue(itemId, out reflect))
+					reflect = new Color(0.55f, 0.75f, 0.95f, 0.08f); // icy default
+				r.material.SetColor("_ReflectColor", reflect);
+			}
+
+			// Report the VALUES, not just that a shader bound. 2026-08-17: 2023/2038 and
+			// 2024/2039 were reported as looking identical in game, and the arithmetic says they
+			// cannot be -- at this texture's mean red 0.277 the two _ReflectColor settings differ
+			// by 32/57/75 out of 255, rising to 58/111/151 at p90. "Bound shader X" was never
+			// evidence that the COLOURS landed; this line is.
+			Debug.Log(string.Format(
+				"WeaponSkinHelper: skin {0} bound shader '{1}' via {2}; bindings={3} _Color={4} _ReflectColor={5}",
+				itemId, s.name, how, bind == null ? "NONE" : "yes",
+				r.material.HasProperty("_Color") ? r.material.GetColor("_Color").ToString() : "(absent)",
+				r.material.HasProperty("_ReflectColor") ? r.material.GetColor("_ReflectColor").ToString() : "(absent)"));
+		}
+	}
+
+	/// <summary>Did this skin's bindings table assign <paramref name="property"/> itself?</summary>
+	private static bool BindsColor(MaterialBindings bind, string property)
+	{
+		if (bind == null || bind.Colors == null)
+			return false;
+		for (int i = 0; i < bind.Colors.Length; i++)
+		{
+			if (bind.Colors[i].Property == property)
+				return true;
+		}
+		return false;
+	}
+
+	/// <summary>
+	/// Resources textures resolved once and reused. ApplyToWeapon runs ApplyShaderOverride for
+	/// EVERY renderer under the weapon -- a machine gun is dozens -- and AssignWeapon runs again
+	/// on every respawn, so without this the same four assets would be looked up hundreds of
+	/// times per match.
+	///
+	/// Failures are cached too, as null, deliberately. A missing asset is a build/deployment
+	/// fact that will not change mid-session, and the alternative is re-attempting a doomed load
+	/// once per renderer per respawn and logging the same error every time.
+	/// </summary>
+	private static readonly Dictionary<string, Texture> _resourceTexCache = new Dictionary<string, Texture>();
+
+	private static Texture LoadResourceTexture(TextureBinding tb)
+	{
+		Texture cached;
+		if (_resourceTexCache.TryGetValue(tb.ResourcePath, out cached))
+			return cached;
+
+		// typeof(Cubemap) vs typeof(Texture2D) matters -- Resources.Load type-filters, so asking
+		// for the wrong one returns null rather than converting. Both derive from Texture, which
+		// is what Material.SetTexture takes, so one cache holds either.
+		Texture t = Resources.Load(tb.ResourcePath, tb.IsCubemap ? typeof(Cubemap) : typeof(Texture2D)) as Texture;
+		_resourceTexCache[tb.ResourcePath] = t;
+		return t;
+	}
+
+	/// <summary>Properties already reported as absent, so the message is logged once, not once per renderer.</summary>
+	private static readonly Dictionary<string, bool> _reportedMissingProps = new Dictionary<string, bool>();
+
+	/// <summary>
+	/// Assign a skin's full material state after its shader is bound.
+	///
+	/// Every assignment is guarded by HasProperty, and a property the shader does not declare is
+	/// reported at Log level rather than LogError. That distinction is deliberate and is the one
+	/// thing to preserve here: "this shader has no _CausticsDeform" is an expected, harmless fact
+	/// about the shipped build (see the note in WaterBindings -- neither _CausticsTiling nor
+	/// _CausticsDeform exists in it), whereas "this texture would not load" means the weapon is
+	/// about to render wrong and is fatal. Collapsing the two would either drown the real errors
+	/// in noise or hide them.
+	/// </summary>
+	private static void ApplyMaterialBindings(Material m, MaterialBindings bind, Texture[] resolved, int itemId)
+	{
+		if (m == null || bind == null)
+			return;
+
+		if (bind.Textures != null && resolved != null)
+		{
+			for (int i = 0; i < bind.Textures.Length; i++)
+			{
+				TextureBinding tb = bind.Textures[i];
+				if (!m.HasProperty(tb.Property))
+				{
+					ReportMissingProperty(m, itemId, tb.Property, "texture '" + tb.ResourcePath + "'");
+					continue;
+				}
+				m.SetTexture(tb.Property, resolved[i]);
+			}
+		}
+
+		if (bind.Colors != null)
+		{
+			for (int i = 0; i < bind.Colors.Length; i++)
+			{
+				ColorBinding cb = bind.Colors[i];
+				if (!m.HasProperty(cb.Property))
+				{
+					ReportMissingProperty(m, itemId, cb.Property, "colour " + cb.Value);
+					continue;
+				}
+				m.SetColor(cb.Property, cb.Value);
+			}
+		}
+
+		if (bind.Floats != null)
+		{
+			for (int i = 0; i < bind.Floats.Length; i++)
+			{
+				FloatBinding fb = bind.Floats[i];
+				if (!m.HasProperty(fb.Property))
+				{
+					ReportMissingProperty(m, itemId, fb.Property, "float " + fb.Value);
+					continue;
+				}
+				m.SetFloat(fb.Property, fb.Value);
+			}
+		}
+	}
+
+	private static void ReportMissingProperty(Material m, int itemId, string property, string what)
+	{
+		string shaderName = (m.shader != null ? m.shader.name : "<null shader>");
+		string key = shaderName + "|" + property;
+		if (_reportedMissingProps.ContainsKey(key))
+			return;
+		_reportedMissingProps[key] = true;
+
+		// Named, so nobody has to guess which one was skipped -- but NOT an error, because the
+		// shader simply does not expose it. Setting it would be a silent no-op; saying so is the
+		// point.
+		Debug.Log("WeaponSkinHelper: skin " + itemId + " skipped " + property + " (" + what
+			+ ") -- shader '" + shaderName + "' does not declare that property, so assigning it "
+			+ "would do nothing. The rest of the material was bound normally.");
+	}
+
+	/// <summary>
+	/// Attach the animated flame overlay: for every mesh we just skinned, add a child holding
+	/// the SAME mesh with an additive material, and scroll its UVs.
+	///
+	/// The overlay is a separate GameObject rather than a second material on the weapon so it
+	/// can be removed by deleting one child, and so the scroll cannot disturb the blade's own
+	/// texture offset.
+	///
+	/// Draw order is set explicitly. The glass sits in the Transparent queue (3000) and the
+	/// overlay must come after it, or the flames render behind the blade they are supposed to
+	/// be licking across. Transparent geometry does not write depth, so this ordering is the
+	/// only thing deciding it.
+	/// </summary>
+	private static void ApplyFlames(GameObject weaponRoot, int itemId)
+	{
+		string sheet;
+		if (!SkinFlames.TryGetValue(itemId, out sheet))
+			return;
+
+		Texture2D flame = LoadSkinFile(sheet);
+		if (flame == null)
+			return;
+		flame.wrapMode = TextureWrapMode.Repeat;   // it scrolls, so it must tile
+
+		Shader additive = Shader.Find("Particles/Additive");
+		if (additive == null)
+		{
+			Debug.LogWarning("WeaponSkinHelper: 'Particles/Additive' missing, no flames for " + itemId);
+			return;
+		}
+
+		// ENUMERATE RENDERERS, NOT MeshFilters -- the same call ApplyToWeapon makes at :1114.
+		//
+		// MEASURED, not assumed. Item 1002 resolves to the prefab named "MachineGun"
+		// (DefaultItemUtil.cs:152), which is Assets/GameObject/MachineGun.prefab, and that
+		// prefab contains ZERO `!u!33 MeshFilter` components. Its body is a single
+		// `!u!137 SkinnedMeshRenderer` on the "MachineGun" child, and a SkinnedMeshRenderer
+		// carries its geometry on the RENDERER -- there is no MeshFilter to find. The old
+		// GetComponentsInChildren<MeshFilter>() therefore came back EMPTY on that weapon and
+		// this entire loop never executed once.
+		//
+		// That is why 2025 MG [Watery] and 2029 MG [Frosted] have shipped registered in
+		// SkinFlames and producing nothing whatsoever in game: not a tuning problem, not a
+		// missing sheet, the loop body simply never ran. It is also why the requested "neon
+		// aura" for 2018 Neon Circuit -- another MachineGun skin -- could not have worked: an
+		// aura is this overlay, and this overlay could not reach the weapon.
+		//
+		// The other four bases in this file DO have MeshFilters (SniperRifle, ShotGun and
+		// Cannon carry three each, TheSplatbat one), so they were always reached and their
+		// behaviour here is unchanged.
+		Renderer[] renderers = weaponRoot.GetComponentsInChildren<Renderer>(true);
+
+		// The overlay is a SLEEVE around the blade, not a copy of the blade. Copying the weapon
+		// mesh paints fire onto the surface; a sleeve is separate geometry standing off the steel,
+		// so the flames can orbit the sword in the air around it.
+		//
+		// Hoisted out of the loop: this is a property of the SKIN, not of the renderer, and the
+		// size filter below needs to know it before the first renderer is examined.
+		FlameMode mode;
+		if (!SkinFlameModes.TryGetValue(itemId, out mode))
+			mode = FlameMode.Helix;
+
+		// HELIX ONLY: the longest mesh extent under this weapon, so a trivially small part can be
+		// skipped below. Zero when not needed, which switches the filter off.
+		float weaponLongest = (mode == FlameMode.Helix) ? LongestOverlayExtent(renderers) : 0f;
+
+		foreach (Renderer src in renderers)
+		{
+			if (src == null)
+				continue;
+			if (IsEffectRenderer(src))
+				continue;
+
+			// INSPECT VIA sharedMaterial, NOT material. This is the 63a9776 fix that landed in
+			// ApplyToWeapon (:1144) and that this method was still quietly undoing afterwards.
+			//
+			// Renderer.material is not a getter: the first access INSTANTIATES a private copy
+			// of the shared material and rebinds this renderer to it. Reading `src.material`
+			// and `src.material.shader` to decide whether to SKIP a renderer therefore forced
+			// a material instance onto every muzzle flash on every flame-carrying skin, which
+			// detaches the quad from the shared material the game's own effect code drives --
+			// and the flash then renders as NOTHING rather than as the stock flash.
+			// sharedMaterial inspects without instantiating, so a skipped renderer is left
+			// genuinely untouched.
+			Material shared = src.sharedMaterial;
+			if (shared == null)
+				continue;
+
+			// Never overlay an effect renderer -- that is the muzzle flash, and stacking an
+			// additive copy on an additive quad doubles it into a bright block.
+			//
+			// BY SHADER NAME, NOT BY RENDERER CLASS, and the two disagree in BOTH directions
+			// across these prefabs, so a class test would be wrong on every weapon here:
+			//
+			//   MachineGun/Shell_Casing IS a ParticleSystemRenderer, but its material
+			//   FX_Shell_Casing_A.mat sits on the same builtin shader as the gun body
+			//   (MachineGun_0.mat) -- the game paints the skin onto it, so it must NOT be
+			//   treated as an effect;
+			//
+			//   SniperRifle/SRMuzzleFlash, SniperRifle/SplatterTrail, Cannon/CNMuzzleFlash,
+			//   ShotGun/SGMuzzleFlash and ShotGun/StandardBullet are plain MeshRenderers whose
+			//   materials are on Particles shaders, and those MUST be skipped.
+			Shader sh = shared.shader;
+			if (sh != null && sh.name != null && sh.name.IndexOf("Particle", StringComparison.OrdinalIgnoreCase) >= 0)
+				continue;
+
+			// WHERE THE MESH LIVES depends on the renderer. A MeshRenderer reads its geometry
+			// from a sibling MeshFilter; a SkinnedMeshRenderer ignores any MeshFilter entirely
+			// and draws its own sharedMesh, so it is asked first.
+			//
+			// Anything that yields neither is skipped, and that is the correct outcome for the
+			// two ParticleSystemRenderers on the MachineGun: they keep their mesh on the
+			// particle system, and painting a flame copy of a shell casing would be nonsense.
+			SkinnedMeshRenderer skinned = src as SkinnedMeshRenderer;
+			MeshFilter mf = src.GetComponent<MeshFilter>();
+			Mesh sourceMesh = (skinned != null)
+				? skinned.sharedMesh
+				: (mf != null ? mf.sharedMesh : null);
+			if (sourceMesh == null)
+				continue;
+
+			// AssignWeapon can run more than once for the same weapon instance; without this
+			// each call would stack another overlay and the flames would get brighter every
+			// respawn until the blade was a white blob.
+			if (src.transform.FindChild(FlameChildName) != null)
+				continue;
+
+			// SKIP TRIVIALLY SMALL PARTS, IN HELIX MODE ONLY. This is what makes 2023 shippable.
+			//
+			// ApplyFlames filters on "yields a mesh" and "is not particle-shaded" and nothing
+			// else, so on AWP_Roughed it finds TWO targets: the rifle (mesh AWP) and the pistol
+			// grip (mesh Handle). A Surface overlay on the grip would be a correctly-placed copy
+			// of the grip and harmless. A HELIX sleeve is not: BuildFlameSleeve synthesises it
+			// from the part's OWN bounding box along the part's OWN longest axis, and Handle's
+			// longest axis is X -- across the rifle. The result, rendered and confirmed on screen,
+			// is a detached horizontal comb of white hairlines floating in mid-air below the
+			// receiver, attached to nothing, at radius 0.004 over a span of 0.027.
+			//
+			// It cannot be suppressed through any existing table: SkinSleeves is keyed by ITEM ID,
+			// not by renderer, so 2023's entry applies to both parts equally. Hence a filter here.
+			//
+			// 15% of the weapon's longest part, and the margin is enormous rather than tuned:
+			//   AWP    1.477879   Handle 0.060465 -> 4.1%   SKIPPED
+			//   Death_Hammer 1.172920, Ninja_Knife 1.074301, MachineGun 0.879688 -> each is its
+			//   own weapon's maximum, i.e. 100%, so nothing that has flames today is anywhere
+			//   near the threshold and no existing skin changes behaviour.
+			if (weaponLongest > 0f)
+			{
+				Vector3 sz = sourceMesh.bounds.size;
+				float longest = Mathf.Max(sz.x, Mathf.Max(sz.y, sz.z));
+				if (longest < weaponLongest * FLAME_MIN_PART_FRAC)
+				{
+					ReportFlamePartSkip(itemId, weaponRoot, src, sourceMesh, longest, weaponLongest);
+					continue;
+				}
+			}
+
+			Vector3 axis = Vector3.up, centre = Vector3.zero;
+			float shellScale = 1f;
+			Mesh overlayMesh;
+			if (mode == FlameMode.Surface)
+			{
+				// the original concept: fire painted onto the weapon's own geometry
+				overlayMesh = WhiteVertexCopy(sourceMesh);
+			}
+			else if (mode == FlameMode.Shell)
+			{
+				// THE WEAPON'S OWN MESH, BY REFERENCE. No copy, no vertex read, so this is the one
+				// mode that works on the m_IsReadable: 0 meshes -- which is exactly the set of
+				// weapons that could never have surface fire.
+				//
+				// Do NOT "improve" this into a copy to give it white vertex colours the way Surface
+				// does. Particles/Additive multiplies by vertex colour, and a mesh with no colour
+				// channel is treated as white anyway, so a copy would buy nothing and would put
+				// these two weapons straight back into the unreadable-mesh failure.
+				overlayMesh = sourceMesh;
+				if (!SkinShellScale.TryGetValue(itemId, out shellScale) || shellScale <= 1f)
+					shellScale = 1.08f;
+				// Scale about the MESH BOUNDS CENTRE rather than the pivot. A vertex v would render
+				// at s*v; we want c + s*(v - c), so the child is offset by c*(1 - s). bounds is the
+				// serialised m_LocalAABB and needs no CPU read.
+				centre = sourceMesh.bounds.center * (1f - shellScale);
+			}
+			else
+			{
+				overlayMesh = BuildFlameSleeve(sourceMesh, itemId, out axis, out centre);
+			}
+			if (overlayMesh == null)
+			{
+				// LOUD AND NAMED. The usual cause is a mesh with m_IsReadable: 0, where
+				// `.vertices` cannot be read on the CPU -- true of Sniper.asset, ShotGun.asset,
+				// CannonBody/CannonHead.asset, AWP.asset and Death_Hammer.asset in the shipped
+				// art, and false of MachineGun.asset and Ninja_Knife.asset. Saying WHICH weapon
+				// and WHICH skin is the point: a skin that silently ships without its flames is
+				// exactly the half-state this file keeps paying for.
+				ReportFlameSkip(itemId, weaponRoot, src, sourceMesh);
+				continue;
+			}
+
+			// SHELL CANNOT WORK ON A SKINNED RENDERER, and it must say so rather than draw
+			// nothing. A SkinnedMeshRenderer with bones ignores its own transform entirely, so
+			// localScale -- the only thing that makes a shell a shell -- is discarded and the
+			// overlay would sit exactly on the weapon, invisible. Falling back to the static
+			// MeshFilter path is worse, not better: the geometry would draw in the BIND POSE,
+			// which on MachineGun.prefab is a quarter turn about Y (mesh AABB centre
+			// (-0.0063, 0.0242, 0.1400) vs renderer AABB centre (-0.1400, 0.0242, -0.0063)) --
+			// a gun-shaped ghost lying crosswise through the real weapon.
+			// No skin does this today: 2023 (AWP_Roughed) and 2024 (DeathHammer) are both static
+			// MeshRenderers. This exists so that adding a Shell skin to the MachineGun fails
+			// LOUDLY instead of shipping an effect nobody can see.
+			if (mode == FlameMode.Shell && skinned != null
+				&& skinned.bones != null && skinned.bones.Length > 0)
+			{
+				Debug.LogWarning(string.Format(
+					"WeaponSkinHelper: skin {0} on {1} asks for Shell flames, but '{2}' is a "
+					+ "SkinnedMeshRenderer ({3} bones). A skinned renderer ignores transform "
+					+ "scale, so the shell would be invisible. Skipping this renderer -- use "
+					+ "Surface mode for skinned weapons, or scale the shell in the mesh itself.",
+					itemId, weaponRoot != null ? weaponRoot.name : "?",
+					src.gameObject.name, skinned.bones.Length));
+				continue;
+			}
+
+			// Created only now that there is something to put in it. Building it earlier left
+			// an orphan GameObject floating in the scene on every equip of a skin whose mesh
+			// could not be copied -- never parented, never destroyed.
+			GameObject go = new GameObject(FlameChildName);
+
+			// INHERIT THE LAYER. `new GameObject` always starts on layer 0 (Default) -- it
+			// does not take its parent's layer, and nothing later fixes it, because
+			// Avatar.AssignWeapon does its SetLayerRecursively FIVE LINES BEFORE it calls
+			// into this file (Avatar.cs:173 vs :178). WeaponSlot.cs:187 is the same shape.
+			//
+			// That one missing line is what produced every "glitch" in testing. The
+			// first-person weapon lives on a layer only the weapon camera draws, so an
+			// overlay left on Default is picked up by the MAIN world camera instead: a blade
+			// hanging in the world at the first-person weapon's position, which sits right in
+			// front of the camera and therefore renders enormous. It read as a second sword,
+			// as a giant translucent slab, and as wrong positioning -- and it survived fixes
+			// to scale, tint and vertex colours because none of them were the cause.
+			go.layer = src.gameObject.layer;
+
+			go.transform.parent = src.transform;
+			// Vertices are authored in the weapon's own local space now that the sleeve bends
+			// with the blade, so the child sits at the origin and never needs moving.
+			go.transform.localPosition = centre;   // Vector3.zero from BuildFlameSleeve
+			go.transform.localRotation = Quaternion.identity;
+			// Scale stays at ONE for Surface and Helix. An earlier version used 1.015 "so it
+			// never z-fights", which was wrong twice over: Particles/Additive already has ZWrite
+			// Off so there is no depth fight to lose, and scaling happens about this transform's
+			// PIVOT, not the mesh centroid. The katana's geometry sits well off its pivot, so
+			// 1.5% became a visible translation and the overlay read as a second, ghostly blade
+			// beside the real one.
+			//
+			// SHELL scales deliberately, and survives that same trap only because localPosition
+			// above carries the bounds.center * (1 - scale) correction. If the shell ever reads as
+			// a displaced ghost of the gun rather than a halo around it, that correction is the
+			// first thing to check -- it is the identical failure, and the pivot offset is large
+			// on exactly these weapons.
+			go.transform.localScale = Vector3.one * shellScale;
+
+			// A SKINNED source needs a SKINNED overlay, and this is measured rather than
+			// cautious. On MachineGun.prefab the mesh's own m_LocalAABB is
+			// centre (-0.0063, 0.0242, 0.1400) / extent (0.0375, 0.1224, 0.4398), while the
+			// SkinnedMeshRenderer's m_AABB -- where the gun actually DRAWS -- is
+			// centre (-0.1400, 0.0242, -0.0063) / extent (0.4398, 0.1224, 0.0375): the same
+			// numbers with X and Z exchanged, i.e. a quarter turn about Y. The mesh's first
+			// bindpose is exactly that rotation, and the root bone B_Root carries it. So a
+			// static MeshFilter copy parented to this renderer would draw the bind-pose
+			// geometry a quarter turn out -- a gun-shaped ghost of fire lying crosswise
+			// through the weapon -- and would also sit still through the shoot animation that
+			// drives B_Ejector and B_Hammer.
+			//
+			// Binding the copy to the SOURCE's own bones and bindposes makes the overlay
+			// deform with the weapon, which is the only way "fire on the surface" means
+			// anything on a skinned mesh. A SkinnedMeshRenderer with bones ignores its own
+			// transform, so the localPosition/localRotation set above are simply unused here.
+			//
+			// The guard is on the COPY's bindposes, not on the source's: BuildFlameSleeve
+			// produces fresh unweighted geometry, so a Helix skin on a skinned weapon falls to
+			// the static branch below. No skin does that today -- every MachineGun skin in
+			// SkinFlameModes is Surface -- but it would place the sleeve in the renderer's
+			// space rather than the bind pose's, so it is worth knowing before adding one.
+			Renderer or;
+			if (skinned != null && skinned.bones != null && skinned.bones.Length > 0
+				&& overlayMesh.bindposes != null && overlayMesh.bindposes.Length > 0)
+			{
+				SkinnedMeshRenderer osmr = go.AddComponent<SkinnedMeshRenderer>();
+				osmr.sharedMesh = overlayMesh;
+				osmr.bones = skinned.bones;
+				osmr.rootBone = skinned.rootBone;
+				osmr.quality = skinned.quality;
+				// Same culling volume as the weapon it covers, so the overlay cannot be culled
+				// while the gun is still on screen.
+				osmr.localBounds = skinned.localBounds;
+				or = osmr;
+			}
+			else
+			{
+				MeshFilter of = go.AddComponent<MeshFilter>();
+				of.sharedMesh = overlayMesh;
+				or = go.AddComponent<MeshRenderer>();
+			}
+			Material m = new Material(additive);
+			m.mainTexture = flame;
+			if (m.HasProperty("_TintColor"))
+			{
+				// Particles/Additive computes 2.0 * vertexColour * _TintColor * texture, and a
+				// MeshRenderer has no vertex colours so that term is white. The factor of TWO
+				// is the part worth remembering: a tint of 0.42/0.62/0.78 is not "60% strength",
+				// it peaks at 0.84/1.24/1.56 and clips -- brighter than the blade underneath.
+				// Particles/Additive computes 2 * vertexColour * tint * texture, so the peak
+				// add is twice these numbers. Deliberately split by MODE rather than shared:
+				// the helix is two narrow ribbons covering very little of the frame, so it can
+				// run hot and read as white-hot fire, while Surface paints the whole weapon and
+				// the same value there would wash the ice out to a flat glare.
+				//
+				// Also PER SKIN. Both defaults below are blue-dominant because they were tuned
+				// on the ice skins, and Surface mode paints the WHOLE weapon -- so on a red
+				// blade that wash is a second blue cast on top of the reflection one.
+				Color tint;
+				if (!SkinFlameTints.TryGetValue(itemId, out tint))
+				{
+					if (mode == FlameMode.Surface)
+						tint = new Color(0.18f, 0.26f, 0.32f, 0.5f);   // peak add 0.36/0.52/0.64
+					else if (mode == FlameMode.Shell)
+						// LOWER than Surface, on purpose. A shell covers the whole silhouette AND
+						// double-adds at every grazing angle (ZWrite Off, both faces draw), so the
+						// same value that reads as a wash on Surface reads as a glare here. The
+						// brief was "a low overlay so it's an outer blue flame" -- the rim is
+						// supposed to carry it, not the body.
+						tint = new Color(0.10f, 0.17f, 0.30f, 0.5f);   // peak 0.20/0.34/0.60, x2 at the rim
+					else
+						tint = new Color(0.40f, 0.47f, 0.52f, 0.5f);   // peak add 0.80/0.94/1.04
+				}
+				m.SetColor("_TintColor", tint);
+			}
+			// Tile the sheet ALONG the blade. The overlay samples with the weapon's own UVs,
+			// where the blade is one long thin island, so at 1x tiling a single flame tongue
+			// is stretched over the entire length and reads as a wash rather than as fire.
+			// Repeating it down the island gives distinct tongues travelling up the blade.
+			// On the sleeve, U runs AROUND the circumference and V runs ALONG the blade, so
+			// these two numbers mean something different than they did on the mesh copy:
+			// 2 flame columns around the sword, repeating 3 times down its length.
+			float vrep = 2f;
+			SleeveSpec tsp;
+			if (SkinSleeves.TryGetValue(itemId, out tsp) && tsp.VRepeat > 0f)
+				vrep = tsp.VRepeat;
+			// Shell samples the weapon's OWN UVs, exactly as Surface does -- it is the same
+			// geometry -- so it takes the same tiling and the fire travels over the gun's shape
+			// rather than around a ribbon.
+			m.SetTextureScale("_MainTex", (mode == FlameMode.Surface || mode == FlameMode.Shell)
+				? new Vector2(1f, 4f)      // across the weapon UVs, as the original did
+				: new Vector2(1f, vrep));  // one band per ribbon, tiled along it
+			m.renderQueue = 3100;               // after the glass at 3000
+			or.material = m;
+			or.castShadows = false;
+			or.receiveShadows = false;
+
+			WeaponFlameAnimator anim = go.AddComponent<WeaponFlameAnimator>();
+			anim.SpinAxis = axis;
+		}
+	}
+
+	private const string FlameChildName = "__SkinFlameOverlay";
+
+	/// <summary>
+	/// A Helix overlay target must be at least this fraction of the weapon's longest part.
+	/// See the note at the call site: the only thing this excludes in the shipped art is the
+	/// AWP's pistol grip, at 4.1%.
+	/// </summary>
+	private const float FLAME_MIN_PART_FRAC = 0.15f;
+
+	/// <summary>
+	/// The longest bounding-box axis of any mesh under this weapon that ApplyFlames would treat as
+	/// an overlay target.
+	///
+	/// Deliberately applies the SAME two filters the main loop does -- particle-shaded renderers
+	/// skipped, SkinnedMeshRenderer asked for sharedMesh before any MeshFilter -- because a
+	/// fraction measured against a set that includes muzzle flashes and shell casings would mean
+	/// something different from the fraction the loop then tests against.
+	/// </summary>
+	private static float LongestOverlayExtent(Renderer[] renderers)
+	{
+		float best = 0f;
+		if (renderers == null)
+			return 0f;
+		for (int i = 0; i < renderers.Length; i++)
+		{
+			Renderer r = renderers[i];
+			if (r == null)
+				continue;
+			// sharedMaterial, never material -- see the note in the main loop. This prepass runs
+			// over every renderer on the weapon including the effects, and reading .material here
+			// would instantiate a copy on each one, which is the exact bug 63a9776 fixed.
+			Material shared = r.sharedMaterial;
+			if (shared == null)
+				continue;
+			Shader sh = shared.shader;
+			if (sh != null && sh.name != null && sh.name.IndexOf("Particle", StringComparison.OrdinalIgnoreCase) >= 0)
+				continue;
+			SkinnedMeshRenderer skinned = r as SkinnedMeshRenderer;
+			MeshFilter mf = r.GetComponent<MeshFilter>();
+			Mesh m = (skinned != null) ? skinned.sharedMesh : (mf != null ? mf.sharedMesh : null);
+			if (m == null)
+				continue;
+			Vector3 sz = m.bounds.size;
+			float longest = Mathf.Max(sz.x, Mathf.Max(sz.y, sz.z));
+			if (longest > best)
+				best = longest;
+		}
+		return best;
+	}
+
+	private static readonly Dictionary<string, bool> _reportedFlameSkips = new Dictionary<string, bool>();
+
+	/// <summary>
+	/// Say out loud that a part was too small to carry a helix sleeve, with the numbers.
+	///
+	/// Separate from ReportFlameSkip below, and at Log rather than LogWarning, because the two
+	/// mean opposite things: that one is "this skin lost fire it should have had", this one is
+	/// "this skin correctly did not put fire somewhere silly". Sharing a message would make a
+	/// working weapon look broken in the log.
+	/// </summary>
+	private static void ReportFlamePartSkip(int itemId, GameObject weaponRoot, Renderer src,
+		Mesh sourceMesh, float longest, float weaponLongest)
+	{
+		string weapon = (weaponRoot != null ? weaponRoot.name : "<null weapon>");
+		string part = (src != null ? src.name : "<null renderer>");
+		string mesh = (sourceMesh != null ? sourceMesh.name : "<null mesh>");
+
+		string key = "small|" + itemId + "|" + weapon + "|" + part + "|" + mesh;
+		if (_reportedFlameSkips.ContainsKey(key))
+			return;
+		_reportedFlameSkips[key] = true;
+
+		Debug.Log("WeaponSkinHelper: skin " + itemId + " gives no helix sleeve to " + weapon + "/"
+			+ part + " (mesh '" + mesh + "', longest extent " + longest.ToString("F4") + " = "
+			+ (longest / weaponLongest * 100f).ToString("F1") + "% of the weapon's "
+			+ weaponLongest.ToString("F4") + ", under the " + (FLAME_MIN_PART_FRAC * 100f).ToString("F0")
+			+ "% floor). A sleeve is built from the PART's own bounding box, so on a small "
+			+ "off-axis part it detaches from the weapon entirely. The rest of the skin is "
+			+ "unaffected.");
+	}
+
+	/// <summary>
+	/// Say out loud that a renderer got no flame overlay, naming the SKIN and the WEAPON.
+	///
+	/// WhiteVertexCopy already logs the mesh it could not copy, but a mesh name on its own does
+	/// not tell you which skin lost its fire or which weapon to look at in game -- and "the skin
+	/// is registered in SkinFlames but nothing burns" is precisely the failure that let 2025 and
+	/// 2029 ship broken and unnoticed.
+	///
+	/// Deduplicated per skin/weapon/mesh because ApplyToWeapon runs on every equip and every
+	/// respawn, for every player in the room.
+	/// </summary>
+	private static void ReportFlameSkip(int itemId, GameObject weaponRoot, Renderer src, Mesh sourceMesh)
+	{
+		string weapon = (weaponRoot != null ? weaponRoot.name : "<null weapon>");
+		string part = (src != null ? src.name : "<null renderer>");
+		string mesh = (sourceMesh != null ? sourceMesh.name : "<null mesh>");
+
+		string key = itemId + "|" + weapon + "|" + part + "|" + mesh;
+		if (_reportedFlameSkips.ContainsKey(key))
+			return;
+		_reportedFlameSkips[key] = true;
+
+		Debug.LogWarning("WeaponSkinHelper: skin " + itemId + " gets NO flame overlay on "
+			+ weapon + "/" + part + " (mesh '" + mesh + "') -- the overlay geometry could not be "
+			+ "built, almost always because the mesh is not readable on the CPU. The skin's "
+			+ "texture and shader are unaffected; only its flames are missing.");
+	}
+
+	private static readonly Dictionary<Mesh, Mesh> _flameMeshCache = new Dictionary<Mesh, Mesh>();
+	// KEYED BY (MESH, ITEM ID), NOT BY MESH. This was a latent bug the moment SkinSleeves stopped
+	// being empty, and it would have been invisible: the cache is consulted at :1786, BEFORE the
+	// SkinSleeves lookup at :1811, so two Helix skins sharing one source mesh would both get
+	// whichever SleeveSpec happened to build FIRST that session -- order-dependent, per-session,
+	// and with nothing in the log to say so.
+	//
+	// Not hypothetical any more. Five prefabs share one AWP mesh GUID (AWP_Roughed, AWP_Black,
+	// AWP_Camo, AWP_Pimp, AWP-Snake), so a second AWP helix skin lands straight on it, and 2020's
+	// katana is likewise shared by 2021/2022 (Surface today -- but a mode change is one word).
+	//
+	// A composite string rather than a nested dictionary because Mesh has no value equality and
+	// GetInstanceID is stable for the object's lifetime, which is exactly the cache's lifetime.
+	private static readonly Dictionary<string, Mesh> _sleeveCache = new Dictionary<string, Mesh>();
+	private static readonly Dictionary<string, Vector3> _sleeveAxis = new Dictionary<string, Vector3>();
+	private static readonly Dictionary<string, Vector3> _sleeveCentre = new Dictionary<string, Vector3>();
+
+	// Sleeve shape. Rings along the blade, segments around it.
+	private const int SLEEVE_RINGS = 22;
+	private const int SLEEVE_RIBBONS = 2;          // two flame strands
+	private const int SLEEVE_ARC_SEGMENTS = 5;     // quads across one strand
+	private const float SLEEVE_RIBBON_ARC = 0.5f;  // radians of arc each strand covers
+	// How far out the flames stand off the steel, as a multiple of the blade's own half
+	// THICKNESS -- the thinner cross-axis, not the thicker one. A katana is curved, so its
+	// bounding box in the curve plane measures the bend (0.157 on this mesh), not the steel.
+	// Sizing off that gave a sleeve 61% as wide as it was long: a spinning umbrella.
+	private const float SLEEVE_RADIUS_MULT = 2.0f;
+	// Belt and braces on the above: whatever the cross-section says, keep the envelope inside
+	// a sane fraction of the blade's LENGTH, which is the measurement that cannot be fooled
+	// by curvature or by a stray vertex.
+	private const float SLEEVE_MIN_LEN_FRAC = 0.025f;
+	private const float SLEEVE_MAX_LEN_FRAC = 0.042f;
+	// How much the envelope narrows at the TIP only. The reference art is a flame helix that
+	// hugs the blade for its whole length and closes at the point -- not an hourglass. An
+	// earlier version pinched the waist and flared both ends, which read as a bowtie and
+	// pushed fire out past the tip.
+	private const float SLEEVE_TIP_SCALE = 0.55f;
+	// Turns of twist from guard to tip. This is what makes it a HELIX rather than a tube with
+	// a pattern on it, so it is the single most important number for matching the reference.
+	private const float SLEEVE_TWIST_TURNS = 2.1f;
+	// Where the sleeve starts along the weapon, as a fraction from butt to tip. The katana's
+	// grip is roughly the first third and a player's hand is there, so fire wrapping it looks
+	// wrong; the flames begin above the guard.
+	private const float SLEEVE_START = 0.30f;
+
+	/// <summary>
+	/// Build a cylindrical shell standing off the blade, for flames that ORBIT the sword
+	/// rather than being painted on it.
+	///
+	/// Everything is derived from the mesh's own bounds rather than hardcoded, so this works
+	/// on any weapon we later point it at:
+	///
+	///   * the blade axis is simply the LONGEST of the three bounds extents
+	///   * the radius comes from the other two, so a thick weapon gets a wider sleeve
+	///   * the grip end is the one nearer the weapon's local origin, because
+	///     Avatar.AssignWeapon parents the weapon to the attach point and then zeroes its
+	///     local position -- so the hand sits at approximately zero and the blade extends away
+	///
+	/// UVs are laid out U-around, V-along, which is what lets the flame sheet's vertical
+	/// tongues run down the length of the blade while the mesh spins about it.
+	/// </summary>
+	private static Mesh BuildFlameSleeve(Mesh source, int itemId, out Vector3 axis, out Vector3 centre)
+	{
+		axis = Vector3.up;
+		centre = Vector3.zero;
+		if (source == null)
+			return null;
+
+		string cacheKey = source.GetInstanceID() + "|" + itemId;
+
+		Mesh cached;
+		if (_sleeveCache.TryGetValue(cacheKey, out cached) && cached != null)
+		{
+			axis = _sleeveAxis[cacheKey];
+			centre = _sleeveCentre[cacheKey];
+			return cached;
+		}
+
+		Bounds b = source.bounds;
+		Vector3 size = b.size;
+
+		int ai = 0;
+		if (size.y > size.x) ai = 1;
+		if (size.z > size[ai]) ai = 2;
+		axis = ai == 0 ? Vector3.right : (ai == 1 ? Vector3.up : Vector3.forward);
+
+		// the two axes perpendicular to the blade
+		Vector3 pu = ai == 0 ? Vector3.up : Vector3.right;
+		Vector3 pv = ai == 2 ? Vector3.up : Vector3.forward;
+
+		float halfLen = size[ai] * 0.5f;
+		if (halfLen <= 1e-5f)
+			return null;
+
+		// per-skin geometry, falling back to the katana-tuned defaults
+		SleeveSpec sp;
+		if (!SkinSleeves.TryGetValue(itemId, out sp))
+		{
+			sp.RadiusMult = SLEEVE_RADIUS_MULT; sp.Ribbons = SLEEVE_RIBBONS;
+			sp.RibbonArc = SLEEVE_RIBBON_ARC;   sp.Twist = SLEEVE_TWIST_TURNS;
+			sp.Start = SLEEVE_START;            sp.MaxLenFrac = SLEEVE_MAX_LEN_FRAC;
+			sp.VRepeat = 2f;                    // the katana's original tiling
+		}
+
+		// MIN, not max: on a curved blade the wider cross-axis is the bend, not the steel.
+		float thin = Mathf.Min(size[(ai + 1) % 3], size[(ai + 2) % 3]) * 0.5f;
+		float len = halfLen * 2f;
+		float radius = Mathf.Clamp(thin * sp.RadiusMult,
+			len * SLEEVE_MIN_LEN_FRAC, len * sp.MaxLenFrac);
+
+		// Which way the blade points from the hand.
+		float sign = b.center[ai] >= 0f ? 1f : -1f;
+		float butt = b.center[ai] - sign * halfLen;
+		float tip = b.center[ai] + sign * halfLen;
+		float start = Mathf.Lerp(butt, tip, sp.Start);
+		float end = tip;
+
+		Vector3 b_centre = b.center;
+		centre = b.center;
+		centre[ai] = (start + end) * 0.5f;
+
+		// FOLLOW THE BLADE'S CURVE. A single centre cannot work here, and that is measured:
+		// across the sleeve's span this katana sweeps 0.126 in X as it rises, against a flame
+		// radius of 0.045. So even a perfect average leaves the sleeve nearly three flame-widths
+		// off the steel at the ends -- strands running parallel to the blade but beside it,
+		// which is exactly what centring on the bounding box, and then on the vertex mean,
+		// both produced.
+		//
+		// Instead bin the vertices by height and take each slice's own centre, giving a
+		// centreline that bends with the blade. Falls back to a straight line down the bounding
+		// box if the mesh is not readable.
+		Vector3[] ring = new Vector3[SLEEVE_RINGS];
+		{
+			Vector3[] sv = null;
+			try { sv = source.vertices; } catch { sv = null; }
+			double[] su = new double[SLEEVE_RINGS];
+			double[] sw = new double[SLEEVE_RINGS];
+			int[] cnt = new int[SLEEVE_RINGS];
+			float lo = Mathf.Min(start, end), hi = Mathf.Max(start, end);
+			if (sv != null && sv.Length > 0 && hi > lo)
+			{
+				for (int q = 0; q < sv.Length; q++)
+				{
+					float p = sv[q][ai];
+					if (p < lo || p > hi)
+						continue;
+					int bin = Mathf.Clamp((int)((p - lo) / (hi - lo) * (SLEEVE_RINGS - 1) + 0.5f),
+						0, SLEEVE_RINGS - 1);
+					su[bin] += Vector3.Dot(sv[q], pu);
+					sw[bin] += Vector3.Dot(sv[q], pv);
+					cnt[bin]++;
+				}
+			}
+			// fill each ring, carrying the last known slice through any empty bin
+			float lastU = Vector3.Dot(b_centre, pu), lastV = Vector3.Dot(b_centre, pv);
+			for (int r = 0; r < SLEEVE_RINGS; r++)
+			{
+				if (cnt[r] > 2)
+				{
+					lastU = (float)(su[r] / cnt[r]);
+					lastV = (float)(sw[r] / cnt[r]);
+				}
+				ring[r] = pu * lastU + pv * lastV;
+			}
+			// one smoothing pass, so a thin slice cannot kink the centreline
+			Vector3[] sm = new Vector3[SLEEVE_RINGS];
+			for (int r = 0; r < SLEEVE_RINGS; r++)
+			{
+				Vector3 acc = ring[r] * 2f;
+				float wsum = 2f;
+				if (r > 0) { acc += ring[r - 1]; wsum += 1f; }
+				if (r < SLEEVE_RINGS - 1) { acc += ring[r + 1]; wsum += 1f; }
+				sm[r] = acc / wsum;
+			}
+			ring = sm;
+		}
+
+		// The sleeve now bends, so it can no longer be spun as a rigid body about the axis --
+		// that would swing the curve away from the blade. Motion comes from the texture
+		// travelling ALONG the helix instead, which reads as flame winding around the sword.
+		centre = Vector3.zero;
+
+		int across = SLEEVE_ARC_SEGMENTS + 1;
+		int perRibbon = SLEEVE_RINGS * across;
+		int nv = perRibbon * sp.Ribbons;
+		Vector3[] verts = new Vector3[nv];
+		Vector2[] uvs = new Vector2[nv];
+		Color[] cols = new Color[nv];
+
+		for (int rib = 0; rib < sp.Ribbons; rib++)
+		{
+			float phase = (float)rib / sp.Ribbons * Mathf.PI * 2f;
+			for (int r = 0; r < SLEEVE_RINGS; r++)
+			{
+				float t = (float)r / (SLEEVE_RINGS - 1);
+				float along = Mathf.Lerp(start, end, t);
+				float profile = Mathf.Lerp(1f, SLEEVE_TIP_SCALE, Mathf.Pow(t, 2.5f));
+				float twist = sp.Twist * Mathf.PI * 2f * t + phase;
+				for (int s = 0; s < across; s++)
+				{
+					float w = (float)s / SLEEVE_ARC_SEGMENTS - 0.5f;
+					float ang = twist + w * sp.RibbonArc;
+					int idx = rib * perRibbon + r * across + s;
+					verts[idx] = axis * along + ring[r]
+						+ pu * (Mathf.Cos(ang) * radius * profile)
+						+ pv * (Mathf.Sin(ang) * radius * profile);
+					uvs[idx] = new Vector2((float)s / SLEEVE_ARC_SEGMENTS, t);
+					cols[idx] = Color.white;
+				}
+			}
+		}
+
+		int[] tris = new int[sp.Ribbons * (SLEEVE_RINGS - 1) * SLEEVE_ARC_SEGMENTS * 6];
+		int k = 0;
+		for (int rib = 0; rib < sp.Ribbons; rib++)
+		{
+			int b0 = rib * perRibbon;
+			for (int r = 0; r < SLEEVE_RINGS - 1; r++)
+			{
+				for (int s = 0; s < SLEEVE_ARC_SEGMENTS; s++)
+				{
+					int i0 = b0 + r * across + s;
+					int i1 = i0 + 1;
+					int i2 = i0 + across;
+					int i3 = i2 + 1;
+					tris[k++] = i0; tris[k++] = i2; tris[k++] = i1;
+					tris[k++] = i1; tris[k++] = i2; tris[k++] = i3;
+				}
+			}
+		}
+
+		Mesh mesh = new Mesh();
+		mesh.name = source.name + "__flameSleeve";
+		mesh.vertices = verts;
+		mesh.uv = uvs;
+		mesh.colors = cols;
+		mesh.triangles = tris;
+		mesh.RecalculateBounds();
+
+		_sleeveCache[cacheKey] = mesh;
+		_sleeveAxis[cacheKey] = axis;
+		_sleeveCentre[cacheKey] = centre;
+
+		Debug.Log("WeaponSkinHelper: flame sleeve for " + source.name
+			+ " axis=" + axis + " radius=" + radius.ToString("F3")
+			+ " (thin half=" + thin.ToString("F3") + ", len=" + len.ToString("F3") + ")"
+			+ " span=" + (end - start).ToString("F3")
+			+ " curve=" + (ring[SLEEVE_RINGS - 1] - ring[0]).magnitude.ToString("F3"));
+		return mesh;
+	}
+
+	/// <summary>
+	/// A copy of the mesh with every vertex colour set to white.
+	///
+	/// This is what makes the flame overlay work at all. "Particles/Additive" is written for
+	/// particle systems, which always supply vertex colours, and its fragment is
+	///
+	///     2.0 * i.color * _TintColor * tex        with  o.color = v.color
+	///
+	/// A weapon mesh has no colour channel, so v.color is UNDEFINED -- and the tint is being
+	/// multiplied by whatever garbage happens to be in that register. That is why the first
+	/// in-game test blew out to a white smear, and why turning the tint down afterwards
+	/// changed nothing: the tint was never the term in control.
+	///
+	/// The copy matters as much as the colours. mf.sharedMesh is shared with the base weapon
+	/// and with every other player holding one, so writing colours into it would corrupt the
+	/// stock Mythic Edge for the whole session. Cached per source mesh so a respawn does not
+	/// allocate a new copy every time.
+	/// </summary>
+	/// <summary>
+	/// Can this mesh's geometry be read back on the CPU? Reading .vertices raises a managed
+	/// error for a mesh that is not CPU-readable, which is recoverable; Instantiate on the same
+	/// mesh is a native crash, which is not. So probe with the safe call before the unsafe one.
+	/// </summary>
+	private static bool CanCopyMesh(Mesh m)
+	{
+		try
+		{
+			if (m.vertexCount <= 0)
+				return false;
+			Vector3[] v = m.vertices;
+			return v != null && v.Length > 0;
+		}
+		catch (Exception e)
+		{
+			Debug.LogWarning("WeaponSkinHelper: mesh '" + m.name + "' is not CPU-readable: " + e.Message);
+			return false;
+		}
+	}
+
+	private static Mesh WhiteVertexCopy(Mesh source)
+	{
+		if (source == null)
+			return null;
+
+		Mesh cached;
+		if (_flameMeshCache.TryGetValue(source, out cached) && cached != null)
+			return cached;
+
+		// HARD CRASH GUARD. Object.Instantiate on a mesh whose vertex data the CPU cannot read
+		// takes the whole client down with a native access violation -- not a managed exception,
+		// so nothing downstream can catch it. It killed the client on equipping the AWP and
+		// Death Hammer skins while the katana copied fine.
+		//
+		// Touching .vertices first turns that into a catchable managed error, so an unreadable
+		// mesh costs the weapon its flames instead of costing the player their session. A skin
+		// with no flames is a disappointment; a skin that crashes on equip is a broken build.
+		if (!CanCopyMesh(source))
+		{
+			Debug.LogWarning("WeaponSkinHelper: mesh '" + source.name + "' cannot be copied on "
+				+ "the CPU, so no flame overlay for it. The skin itself is unaffected.");
+			_flameMeshCache[source] = null;
+			return null;
+		}
+
+		// BUILT BY HAND, not Instantiated.
+		//
+		// Object.Instantiate(mesh) is the call that crashed: on the AWP and Death Hammer it
+		// took the client down with a native access violation, which no managed catch can
+		// trap. Reconstructing the mesh from its own arrays does exactly the same job, and
+		// every read here is a managed call that either succeeds or throws something
+		// catchable -- so the worst case is a weapon without flames, never a dead session.
+		//
+		// The overlay only needs geometry, UVs and white vertex colours: Particles/Additive
+		// computes 2 * vertexColour * _TintColor * texture and does not light the surface, so
+		// normals and tangents are dead weight and are deliberately not copied.
+		Mesh copy;
+		try
+		{
+			copy = new Mesh();
+			copy.name = source.name + "__flameOverlay";
+			copy.vertices = source.vertices;
+			copy.triangles = source.triangles;
+			Vector2[] uv = source.uv;
+			if (uv != null && uv.Length == copy.vertexCount)
+				copy.uv = uv;
+			Color[] colours = new Color[copy.vertexCount];
+			for (int i = 0; i < colours.Length; i++)
+				colours[i] = Color.white;
+			copy.colors = colours;
+
+			// SKIN WEIGHTS, when the source has them. Normals and tangents are dead weight for
+			// an unlit additive shader, but these are not: without bindposes and boneWeights
+			// the overlay can only be drawn by a static MeshRenderer, and on a skinned weapon
+			// that puts it in the wrong place -- see the measurement in ApplyFlames. Both are
+			// plain managed array reads on an already-verified-readable mesh, so neither can
+			// reintroduce the native crash that Object.Instantiate was.
+			BoneWeight[] weights = source.boneWeights;
+			Matrix4x4[] binds = source.bindposes;
+			if (weights != null && weights.Length == copy.vertexCount
+				&& binds != null && binds.Length > 0)
+			{
+				copy.boneWeights = weights;
+				copy.bindposes = binds;
+			}
+
+			copy.RecalculateBounds();
+		}
+		catch (Exception e)
+		{
+			Debug.LogWarning("WeaponSkinHelper: could not rebuild '" + source.name
+				+ "' for the flame overlay (" + e.Message + "); skipping flames for it.");
+			_flameMeshCache[source] = null;
+			return null;
+		}
+
+		_flameMeshCache[source] = copy;
+		return copy;
+	}
+
+	/// <summary>
+	/// Swap the weapon's impact/particle config so it draws a travelling beam, and attach
+	/// the tinter that recolours each spawned trail.
+	/// </summary>
+	public static void ApplyTracer(GameObject weaponRoot, int itemId)
+	{
+		TracerSpec spec;
+		if (!TracerOverrides.TryGetValue(itemId, out spec))
+			return; // no tracer for this item, leave the weapon alone
+
+		BaseWeaponDecorator decorator = weaponRoot.GetComponent<BaseWeaponDecorator>();
+		if (decorator == null)
+			return;
+
+		decorator.SetSurfaceEffect(spec.Effect);
+
+		WeaponTracerTinter tinter = weaponRoot.GetComponent<WeaponTracerTinter>();
+		if (tinter == null)
+			tinter = weaponRoot.AddComponent<WeaponTracerTinter>();
+		tinter.StartColour = spec.Start;
+		tinter.EndColour = spec.End;
+		tinter.MatTint = spec.MatTint;
+	}
+
+	/// <summary>
+	/// Recolour this weapon's own muzzle effects, for the one skin that asks for it.
+	///
+	/// THE FIRST LINE IS THE ISOLATION PROOF, and it is the whole reason this is safe to add to a
+	/// file that already carries 28 skins. MuzzleTints has exactly one key. A stock weapon reaches
+	/// ApplyToWeapon with its own item id (1002-1005, 6, ...), misses the lookup and returns
+	/// having touched nothing; so does every other skin. And because nothing below writes a shared
+	/// asset -- Light.color and ParticleSystem.startColor are both per-COMPONENT state on this
+	/// weapon instance -- even a mis-gated call could not outlive the weapon it ran on.
+	///
+	/// NOT PREVIEWABLE IN skin_studio, and that is not a gap that can be closed cheaply: the
+	/// studio draws a static weapon from the exporter's renderer list, has no light and no
+	/// particle simulation, and does not model a fire event at all. Verification for this one is
+	/// the real client, first person AND watching another player fire, per the note at the call
+	/// site. Budget for a build; do not let a green studio stand in for it.
+	/// </summary>
+	/// <summary>
+	/// Set true to have ApplyMuzzleTint dump the live weapon's renderers, materials, shaders and
+	/// BaseWeaponEffect components to the player log. Off in shipping builds -- it is ~13 lines
+	/// per weapon equip, twice (first person and third).
+	/// </summary>
+	// static readonly, NOT const: a const false lets the compiler fold the guarded blocks away
+	// and emit CS0162 "unreachable code" for each one, and this file has built warning-clean
+	// until now. A field read costs nothing here and keeps the diagnostic switchable.
+	private static readonly bool MUZZLE_DEBUG = false;
+
+	public static void ApplyMuzzleTint(GameObject weaponRoot, int itemId)
+	{
+		MuzzleTintSpec spec;
+		if (!MuzzleTints.TryGetValue(itemId, out spec))
+			return; // not one of ours -- leave every other skin and every stock weapon alone
+
+		if (spec.HasLight)
+		{
+			// Every Light under the weapon, which on AWP_Roughed is exactly one
+			// (MuzzleLightShining). Colour only: intensity and range are what the clip animates,
+			// and writing them here would fight it.
+			Light[] lights = weaponRoot.GetComponentsInChildren<Light>(true);
+			for (int i = 0; i < lights.Length; i++)
+			{
+				if (lights[i] == null)
+					continue;
+				lights[i].color = spec.LightColour;
+			}
+		}
+
+		// DIAGNOSTIC, 2026-08-17. The tint was verified in the extracted Unity project and then
+		// reported invisible in game -- "just a very low opacity grey/white smoke and that native
+		// orange muzzle". Both halves of this hook match BY NAME or BY COMPONENT on the runtime
+		// hierarchy, and the runtime hierarchy is the one thing that was never checked: every
+		// object name here came from
+		// UberSteam-client-4-7-1-unity465/.../AWP_Roughed.prefab, NOT from the shipped client.
+		// So this prints what is actually under the weapon at equip time. If "Sfx" and "Spark"
+		// are not in that list, the names are wrong and the fix is a rename, not a colour.
+		// Kept, not deleted, and OFF by default. This block is what finally identified the real
+		// effect after three wrong builds, and the next weapon with a muzzle request will need it
+		// again -- the prefab cannot tell you which effects anything actually plays. Flip
+		// MUZZLE_DEBUG to true, equip the weapon, and read UberStrike_Data/output_log.txt.
+		if (MUZZLE_DEBUG)
+		{
+			Light[] dbgL = weaponRoot.GetComponentsInChildren<Light>(true);
+			ParticleSystem[] dbgP = weaponRoot.GetComponentsInChildren<ParticleSystem>(true);
+			string pn = "";
+			for (int i = 0; i < dbgP.Length; i++)
+				pn += (i > 0 ? ", " : "") + dbgP[i].gameObject.name;
+			string ln = "";
+			for (int i = 0; i < dbgL.Length; i++)
+				ln += (i > 0 ? ", " : "") + dbgL[i].gameObject.name;
+			Debug.Log(string.Format(
+				"WeaponSkinHelper: muzzle tint {0} on '{1}' -- {2} light(s) [{3}], {4} particle "
+				+ "system(s) [{5}]; wanted [{6}]",
+				itemId, weaponRoot.name, dbgL.Length, ln, dbgP.Length, pn,
+				spec.ParticleObjects == null ? "" : string.Join(", ", spec.ParticleObjects)));
+
+			// SECOND PASS, 2026-08-17. Tinting Sfx and Spark -- both found by name, both
+			// Particles/Additive, both _TintColor written on a per-instance clone -- changed
+			// NOTHING on screen. So the flash almost certainly is not those two emitters, and the
+			// assumption that it was came from reading the prefab rather than the running game.
+			// This lists EVERY renderer under the weapon with its shader, and every weapon-effect
+			// component, so the thing that actually draws the orange flash has to appear here.
+			Renderer[] dbgR = weaponRoot.GetComponentsInChildren<Renderer>(true);
+			for (int i = 0; i < dbgR.Length; i++)
+			{
+				Material sm = dbgR[i].sharedMaterial;
+				Debug.Log(string.Format(
+					"WeaponSkinHelper:   renderer '{0}' [{1}] mat '{2}' shader '{3}' enabled={4}",
+					dbgR[i].gameObject.name, dbgR[i].GetType().Name,
+					sm != null ? sm.name : "(null)",
+					sm != null && sm.shader != null ? sm.shader.name : "(null)",
+					dbgR[i].enabled));
+			}
+			BaseWeaponEffect[] dbgE = weaponRoot.GetComponentsInChildren<BaseWeaponEffect>(true);
+			for (int i = 0; i < dbgE.Length; i++)
+				Debug.Log(string.Format("WeaponSkinHelper:   effect '{0}' [{1}]",
+					dbgE[i].gameObject.name, dbgE[i].GetType().Name));
+		}
+
+		// GENERIC PASS, by COMPONENT TYPE rather than by object name. Added when the tint was
+		// extended from one weapon to six.
+		//
+		// Naming renderers per weapon does not scale and is not knowable from the prefabs:
+		// AWP_Roughed.prefab declares only MuzzleLight, yet the RUNNING weapon also carries
+		// BulletTrail on a nested SplatterTrail -- which is the effect that actually draws the
+		// flash. Enumerating by component type finds it on every weapon without anyone having to
+		// know its child's name in advance.
+		//
+		// WHAT IS INCLUDED: BulletTrail, MuzzleParticleSystem, MuzzleHeatWave -- the effects whose
+		// renderers are muzzle visuals that fire on shoot.
+		//
+		// WHAT IS DELIBERATELY EXCLUDED, and each exclusion is a bug avoided:
+		//   MuzzleFlash -- its material's _TintColor.ALPHA is driven by a legacy Animation on the
+		//     SHARED material asset. Touching `.material` clones it frozen at whatever alpha the
+		//     clip last wrote, which is 0 after Hide(), so the flash renders as NOTHING. That is
+		//     exactly the regression commit 63a9776 fixed, and DeathHammer (2024 Icebreaker) is
+		//     the weapon that has one. Its light still tints; its flash is left stock on purpose.
+		//   MuzzleSmoke -- blue smoke reads as a bug rather than as a skin.
+		if (spec.HasParticles)
+		{
+			Component[] fx = weaponRoot.GetComponentsInChildren<BaseWeaponEffect>(true);
+			for (int i = 0; i < fx.Length; i++)
+			{
+				if (fx[i] == null)
+					continue;
+				string tn = fx[i].GetType().Name;
+				if (tn != "BulletTrail" && tn != "MuzzleParticleSystem" && tn != "MuzzleHeatWave")
+					continue;
+				Renderer[] fr = fx[i].GetComponentsInChildren<Renderer>(true);
+				for (int k = 0; k < fr.Length; k++)
+				{
+					if (fr[k] == null)
+						continue;
+					Material fm = fr[k].material;      // per-instance clone; stock weapon untouched
+					if (fm == null || !fm.HasProperty("_TintColor"))
+						continue;
+					Color cur = fm.GetColor("_TintColor");
+					fm.SetColor("_TintColor", new Color(
+						spec.ParticleTint.r, spec.ParticleTint.g, spec.ParticleTint.b, cur.a));
+					if (MUZZLE_DEBUG)
+						Debug.Log(string.Format(
+							"WeaponSkinHelper: muzzle {0} tinted {1} renderer '{2}'",
+							itemId, tn, fr[k].gameObject.name));
+				}
+			}
+		}
+
+		// The renderers that actually draw something on this weapon. See TintRenderers' note:
+		// Sfx/Spark below are inert on the AWP because nothing plays them, and this is the loop
+		// that produces the visible change.
+		if (spec.TintRenderers != null)
+		{
+			Renderer[] rends = weaponRoot.GetComponentsInChildren<Renderer>(true);
+			for (int i = 0; i < rends.Length; i++)
+			{
+				if (rends[i] == null)
+					continue;
+				for (int j = 0; j < spec.TintRenderers.Length; j++)
+				{
+					if (rends[i].gameObject.name != spec.TintRenderers[j])
+						continue;
+					// `.material`, per-instance, so the stock weapon is untouched.
+					Material rm = rends[i].material;
+					if (rm != null && rm.HasProperty("_TintColor"))
+					{
+						Color cur = rm.GetColor("_TintColor");
+						rm.SetColor("_TintColor", new Color(
+							spec.ParticleTint.r, spec.ParticleTint.g, spec.ParticleTint.b, cur.a));
+						if (MUZZLE_DEBUG)
+							Debug.Log(string.Format(
+								"WeaponSkinHelper: muzzle {0} tinted renderer '{1}' (shader '{2}')",
+								itemId, rends[i].gameObject.name,
+								rm.shader != null ? rm.shader.name : "(null)"));
+					}
+					break;
+				}
+			}
+		}
+
+		if (spec.HasParticles && spec.ParticleObjects != null)
+		{
+			// BY NAME, not "every particle system on the weapon". The AWP also carries
+			// AWPGunSmoke, AWPBigSmoke, AWPBulletShell and AWPBulletShellTail, and tinting smoke
+			// or brass blue reads as a bug rather than as a skin -- see the table's note.
+			ParticleSystem[] systems = weaponRoot.GetComponentsInChildren<ParticleSystem>(true);
+			for (int i = 0; i < systems.Length; i++)
+			{
+				if (systems[i] == null)
+					continue;
+				for (int j = 0; j < spec.ParticleObjects.Length; j++)
+				{
+					if (systems[i].gameObject.name != spec.ParticleObjects[j])
+						continue;
+					// startColor, NOT the renderer's material. This is a Unity 4.x Shuriken
+					// build -- there is no `main` module and no MinMaxGradient, startColor is a
+					// plain Color, and it multiplies the shared material per-particle instead of
+					// replacing it. See the leak counts in the table above.
+					systems[i].startColor = spec.ParticleTint;
+
+					// startColor ALONE DOES NOTHING VISIBLE HERE, proven in game on 2026-08-17:
+					// the hook ran on both the first- and third-person weapons, found this exact
+					// object by name, set startColor -- and the flash stayed stock orange.
+					// Particles/Additive computes 2 * vertexColour * _TintColor * texture, so
+					// vertex colour is only half the product; whatever this build does with
+					// startColor, the material's own _TintColor is the term that survives.
+					//
+					// `.material` and NOT `.sharedMaterial`: sharedMaterial would leak into every
+					// other weapon using FireBall/Flare, and `.material` clones per renderer
+					// instance so the stock AWP is untouched. The clone trap that killed the
+					// shotgun flash in 63a9776 does NOT apply here -- that was a material whose
+					// alpha is driven by a legacy Animation, and nothing animates these two.
+					Renderer pr = systems[i].GetComponent<Renderer>();
+					if (pr != null)
+					{
+						Material pm = pr.material;
+						string sh = pm != null && pm.shader != null ? pm.shader.name : "(null)";
+						bool has = pm != null && pm.HasProperty("_TintColor");
+						if (has)
+						{
+							// Preserve alpha, as WeaponTracerTinter does: on the additive
+							// particle shaders alpha is the energy term and the effect's own
+							// fade depends on it.
+							Color cur = pm.GetColor("_TintColor");
+							pm.SetColor("_TintColor", new Color(
+								spec.ParticleTint.r, spec.ParticleTint.g, spec.ParticleTint.b, cur.a));
+						}
+						if (MUZZLE_DEBUG)
+							Debug.Log(string.Format(
+								"WeaponSkinHelper: muzzle {0} '{1}' shader '{2}' _TintColor={3}",
+								itemId, systems[i].gameObject.name, sh,
+								has ? "SET" : "ABSENT -- shader has no _TintColor"));
+					}
+					break;
+				}
+			}
+		}
+	}
+
+}
+
+
+/// <summary>
+/// Recolours the muzzle to hitpoint beam produced by MoveTrailrendererObject.
+///
+/// Two things make this less obvious than it looks:
+///
+/// 1. The trail is NOT under the weapon. BaseWeaponDecorator caches
+///    _parent = transform.parent during Awake, but WeaponSlot.ConfigureWeaponDecorator
+///    re-parents the decorator afterwards, so _parent is stale and effectively null.
+///    ParticleEffectController.ShowTrailEffect then parents each spawned trail to that,
+///    which drops it at the scene root. Hence the scene wide lookup rather than a walk
+///    down our own hierarchy.
+///
+/// 2. Colour lives in two places. The LineRenderer vertex colours decide the hue (the
+///    stock ParticleLance gradient has red at zero, which is exactly why that beam reads
+///    cyan no matter what the material says), while the material _TintColor is multiplied
+///    by the trail texture. MoveTrailrendererObject.Update only rewrites _TintColor's
+///    alpha and preserves RGB, so a tint applied once survives the whole fade.
+///
+/// Renderer.material returns a per instance copy, so nothing shared is touched. That
+/// matters because SRParticleLanceTrail.mat is also used by SpringGrenade and
+/// LR_FinalWord_MissileSticky.
+/// </summary>
+/// <summary>
+/// Scrolls the flame overlay's UVs so the fire moves up the blade.
+///
+/// The sheet is authored to tile seamlessly top to bottom -- verified by measuring the wrap
+/// join against the texture's own row-to-row difference, which came out at 0.07 where 1.0
+/// would mean "indistinguishable from any other row". A sheet that does not loop produces a
+/// seam that marches up the weapon once per cycle, forever.
+///
+/// Offset is wrapped with Mathf.Repeat rather than left to grow. Time.time is a float, and
+/// after a long match it is large enough that adding a small delta stops changing the low
+/// bits -- the scroll would visibly stutter and then freeze. Keeping the value inside 0..1
+/// avoids that entirely.
+/// </summary>
+public class WeaponFlameAnimator : MonoBehaviour
+{
+	public float Speed = 0.17f;          // sheet heights per second, along the blade
+	public float SwaySpeed = 0.13f;      // slight drift so it does not look rigid
+	public float SwayAmount = 0.015f;
+
+	/// <summary>
+	/// Axis the sleeve spins about, in the parent's local space -- the blade's long axis, as
+	/// measured from the mesh bounds. Set by ApplyFlames; without it the flames would tumble
+	/// about an arbitrary axis instead of orbiting the sword.
+	/// </summary>
+	public Vector3 SpinAxis = Vector3.up;
+	public float SpinDegreesPerSecond = 0f;
+
+	private Renderer _renderer;
+	private float _v;
+	private float _spin;
+
+	private void Start()
+	{
+		_renderer = GetComponent<Renderer>();
+	}
+
+	private void LateUpdate()
+	{
+		if (_renderer == null || _renderer.material == null)
+			return;
+
+		// Two independent motions, which is what stops it reading as a rigid spinning tube:
+		// the sleeve ORBITS the blade, while the fire itself travels ALONG it.
+		// Only spins when explicitly asked. A sleeve that follows a CURVED blade cannot be
+		// rotated as a rigid body -- the curve would swing off the steel, which is the bug
+		// this replaced. Motion comes from the texture travelling along the helix instead.
+		if (SpinDegreesPerSecond != 0f)
+		{
+			_spin = Mathf.Repeat(_spin + SpinDegreesPerSecond * Time.deltaTime, 360f);
+			transform.localRotation = Quaternion.AngleAxis(_spin, SpinAxis);
+		}
+
+		_v = Mathf.Repeat(_v + Speed * Time.deltaTime, 1f);
+		float u = Mathf.Sin(Time.time * SwaySpeed * 6.2832f) * SwayAmount;
+		_renderer.material.SetTextureOffset("_MainTex", new Vector2(u, _v));
+	}
+}
+
+public class WeaponTracerTinter : MonoBehaviour
+{
+	public Color StartColour = Color.white;
+	public Color EndColour = Color.white;
+	public Color MatTint = Color.white;
+
+	private void LateUpdate()
+	{
+		UnityEngine.Object[] trails = UnityEngine.Object.FindObjectsOfType(typeof(MoveTrailrendererObject));
+		for (int i = 0; i < trails.Length; i++)
+		{
+			MoveTrailrendererObject trail = trails[i] as MoveTrailrendererObject;
+			if (trail == null)
+				continue;
+
+			LineRenderer line = trail.GetComponent<LineRenderer>();
+			if (line == null)
+				line = trail.GetComponentInChildren<LineRenderer>();
+			if (line == null)
+				continue;
+
+			// SetColors, not startColor/endColor: those properties are Unity 5.5 and later,
+			// and this client is built with Unity 4.6.5.
+			line.SetColors(StartColour, EndColour);
+
+			Material mat = line.material;
+			if (mat != null && mat.HasProperty("_TintColor"))
+			{
+				Color existing = mat.GetColor("_TintColor");
+				mat.SetColor("_TintColor", new Color(MatTint.r, MatTint.g, MatTint.b, existing.a));
+			}
+		}
+	}
+}

@@ -175,6 +175,7 @@ public class Avatar
 			weapon.transform.localRotation = Quaternion.identity;
 			weapon.IsEnabled = (slot == CurrentWeaponSlot);
 			weapon.WeaponClass = item.View.ItemClass;
+			WeaponSkinHelper.ApplyToWeapon(weapon.gameObject, item.View.ID);
 		}
 		else
 		{
