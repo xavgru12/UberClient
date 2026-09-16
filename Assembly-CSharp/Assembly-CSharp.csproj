@@ -780,6 +780,7 @@
     <Compile Include="WeaponShootEvent.cs" />
     <Compile Include="WeaponSimulator.cs" />
     <Compile Include="WeaponSkinHelper.cs" />
+    <Compile Include="WeaponSkinDictionaries.cs" />
     <Compile Include="UberverseWeaponEffect.cs" />
     <Compile Include="WeaponEmitterEffect.cs" />
     <Compile Include="UberverseV1Effect.cs" />
