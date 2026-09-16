@@ -90,6 +90,21 @@ public class WeaponSlot
 			Decorator.EnableShootAnimation = false;
 			Decorator.DefaultPosition = Vector3.zero;
 		}
+		// Skin the local first-person viewmodel.
+		//
+		// Avatar.AssignWeapon already skins the third-person model that other
+		// players see, but that is a genuinely separate instantiation path from
+		// this one. Without this second call the skin shows correctly in third
+		// person, in the shop and on the inventory icon, while the player's own
+		// viewmodel stays unskinned.
+		//
+		// Placed after the if/else so it covers both the local and remote cases;
+		// ApplyToWeapon is ID-gated and returns immediately for any item that is
+		// not one of the skins, so non-skin weapons are unaffected.
+		if (Decorator != null)
+		{
+			WeaponSkinHelper.ApplyToWeapon(Decorator.gameObject, View.ID);
+		}
 	}
 
 	private void CreateWeaponLogic(UberStrikeItemWeaponView view, IWeaponController controller)
