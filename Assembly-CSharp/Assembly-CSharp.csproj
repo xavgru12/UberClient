@@ -1291,6 +1291,15 @@
     <EmbeddedResource Include="WeaponSkins\2067_AWPUberverse_Icon.png">
       <LogicalName>WeaponSkins.2067_AWPUberverse_Icon.png</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\2076_DeathHammerGalaxy.jpg">
+      <LogicalName>WeaponSkins.2076_DeathHammerGalaxy.jpg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\2076_DeathHammerGalaxy.alpha.png">
+      <LogicalName>WeaponSkins.2076_DeathHammerGalaxy.alpha.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WeaponSkins\2076_DeathHammerGalaxy_Icon.png">
+      <LogicalName>WeaponSkins.2076_DeathHammerGalaxy_Icon.png</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="WeaponSkins\2068_CyberNeon.jpg">
       <LogicalName>WeaponSkins.2068_CyberNeon.jpg</LogicalName>
     </EmbeddedResource>

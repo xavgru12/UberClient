@@ -60,6 +60,10 @@
 //                                                       is the whole point -- it inherits
 //                                                       ApplyShaderOverride's icy default.
 //   2042 Icebreaker [Clear Ice] (base DeathHammer)    -- same, on the hammer.
+//   2076 Death Hammer [Galaxy] (base DeathHammer)     -- galaxy starfield + gold filigree; clones the
+//                                                        2067 AWP Uberverse architecture. Uberverse
+//                                                        orbital-aura FX wiring is a follow-up (needs
+//                                                        the DeathHammer body mesh name).
 //   2043 M4A1 [Gold]        (base 28 M4_Standard)      -- the [Gold] set. PROCEDURALLY DYED from
 //   2044 AK-47 [Gold]       (base 38 AK47)                each weapon's own stock diffuse: a
 //   2045 SPAS-12 [Gold]     (base 60 Automatic_Shotgun_Roughed)  luminance remap through a

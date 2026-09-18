@@ -91,6 +91,7 @@ public static partial class WeaponSkinHelper
 		{ 2073, new SkinDef { SkinTextures = "2073_WreckerVoidglass.png", IconTextures = "2073_WreckerVoidglass_Icon.png" } },
 		{ 2074, new SkinDef { SkinTextures = "2074_SplattergunPrismSplatter.png", IconTextures = "2074_SplattergunPrismSplatter_Icon.png" } },
 		{ 2075, new SkinDef { SkinTextures = "2075_LauncherDragonsMaw.png", IconTextures = "2075_LauncherDragonsMaw_Icon.png" } },
+		{ 2076, new SkinDef { SkinTextures = "2076_DeathHammerGalaxy.png", IconTextures = "2076_DeathHammerGalaxy_Icon.png", MuzzleTints = new MuzzleTintSpec { HasLight = true, LightColour = new Color(0.75f, 0.45f, 1.00f, 1f), HasParticles = true, ParticleTint = new Color(1.10f, 0.55f, 1.60f, 1f), ParticleObjects = new string[] { "Sfx", "Spark" }, TintRenderers = new string[] { "SplatterTrail" } } } },
 	};
 
 	static WeaponSkinHelper()
