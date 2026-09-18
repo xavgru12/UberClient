@@ -16,7 +16,7 @@ public sealed class UberverseWeaponEffect : MonoBehaviour
     private const int PlanetCount = 3;
     private const int RibbonSegments = 64;
     private const int RibbonCount = 7; // three orbits, three comet tails, one planet ring
-    private const int SpriteCount = 36; // 3 atmospheres, 9 nebula wisps, 24 sparse star motes
+    private const int SpriteCount = 60; // MAX; per-instance active count below (36 AWP; 60 Death Hammer)
     // Gemini/Nano-Banana baked planet orbs, embedded as WeaponSkins.<name> in the csproj.
     // Additive billboards replace the old procedural spheres: image quality, no shimmer.
     private static readonly string[] PlanetTextures = { "planet_violet.png", "planet_magenta.png", "planet_blue.png" };
@@ -44,6 +44,8 @@ public sealed class UberverseWeaponEffect : MonoBehaviour
     private float scale;
     private Vector3 anchor;
     private bool ready;
+    private int activeSprites = 36;  // 36 AWP (tight); SpriteCount for Death Hammer (more stars)
+    private float zSpread = 0f;       // 0 = tight cluster (AWP); 1 = spread planets+stars along the whole gun
 
     public static bool Owns(Renderer renderer)
     {
@@ -110,6 +112,7 @@ public sealed class UberverseWeaponEffect : MonoBehaviour
         root.transform.localScale = Vector3.one;
         root.layer = body.gameObject.layer;
         UberverseWeaponEffect newEffect = root.AddComponent<UberverseWeaponEffect>();
+        if (itemId == ItemIdDeathHammer) { newEffect.activeSprites = SpriteCount; newEffect.zSpread = 1f; }
         try { newEffect.Initialize(body, chosen.sharedMesh.bounds); }
         catch (Exception error)
         {
@@ -216,7 +219,10 @@ public sealed class UberverseWeaponEffect : MonoBehaviour
         Vector3 p = new Vector3(Mathf.Cos(angle) * radius,
             Mathf.Sin(angle) * (.012f + i * .0025f) * scale,
             Mathf.Sin(angle) * (.066f + i * .011f) * scale);
-        return anchor + p + new Vector3(0f, i * .015f * scale, (i - 1) * .015f * scale);
+        // zSpread pushes each planet's orbit centre along the barrel so the worlds sit ALL ALONG the gun
+        // (Death Hammer) instead of one cluster; 0 keeps the AWP's tight grouping.
+        float zc = zSpread * (i - 1) * scale * .62f;
+        return anchor + p + new Vector3(0f, i * .015f * scale, (i - 1) * .015f * scale + zc);
     }
 
     private void LateUpdate()
@@ -287,24 +293,25 @@ public sealed class UberverseWeaponEffect : MonoBehaviour
             ribbons.colors = ribbonColours;
         }
 
-        for (int i = 3; i < SpriteCount; i++)
+        for (int i = 3; i < activeSprites; i++)
         {
             int n = i - 3;
             float phase = Phase(time, i < 12 ? .05 : .10, n * 2.399963);
             float wave = .5f + .5f * Mathf.Sin(Phase(time, .5, n * 1.7));
             if (i < 12)
             {
-                // Concentrate translucent wisps around scope/receiver, below the planets.
+                // Translucent wisps; zSpread stretches them along the whole gun for the Death Hammer.
                 spritePositions[i] = anchor + new Vector3(Mathf.Cos(phase) * .040f,
-                    -.075f + Mathf.Sin(phase) * .018f, -.13f + n * .043f) * scale;
+                    -.075f + Mathf.Sin(phase) * .018f, (-.13f + n * .043f) * (1f + zSpread * 2.2f)) * scale;
                 spriteSizes[i] = (.062f + .012f * wave) * scale;
                 spriteColours[i] = WithAlpha(Palette[n % 3], .055f + wave * .020f);
             }
             else
             {
+                // Star motes: zSpread scatters them along the entire barrel (Death Hammer = many, all over).
                 spritePositions[i] = anchor + new Vector3(Mathf.Cos(phase) * (.050f + n % 4 * .011f),
                     -.035f + Mathf.Sin(Phase(time, .14, n * 2.399963 * 1.4)) * .060f,
-                    -.13f + (n % 13) * .024f) * scale;
+                    (-.13f + (n % 13) * .024f) * (1f + zSpread * 2.8f)) * scale;
                 spriteSizes[i] = (.0019f + .0011f * wave + (n % 9 == 0 ? .0014f : 0f)) * scale;
                 spriteColours[i] = WithAlpha(n % 3 == 0 ? Gold : Cyan, .2f + wave * .45f);
             }
