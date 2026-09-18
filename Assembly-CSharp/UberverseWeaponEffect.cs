@@ -9,6 +9,9 @@ public sealed class UberverseWeaponEffect : MonoBehaviour
 {
     // Next unused ID after PR #8's retired 9068-9078 range. Catalog must use this same ID.
     public const int ItemId = 2067;
+    // Death Hammer [Galaxy] (2076) reuses this same orbital aura; it has no "AWP" mesh, so it anchors
+    // to the weapon's largest body mesh and Initialize scales the system to those bounds.
+    public const int ItemIdDeathHammer = 2076;
     public const string RootName = "Uberverse_OrbitalSystem";
     private const int PlanetCount = 3;
     private const int RibbonSegments = 64;
@@ -53,11 +56,12 @@ public sealed class UberverseWeaponEffect : MonoBehaviour
     public static void Apply(GameObject weaponRoot, int itemId)
     {
         if (weaponRoot == null) return;
+        bool mine = (itemId == ItemId || itemId == ItemIdDeathHammer);
         UberverseWeaponEffect[] existing = weaponRoot.GetComponentsInChildren<UberverseWeaponEffect>(true);
         bool retained = false;
         foreach (UberverseWeaponEffect effect in existing)
         {
-            if (itemId == ItemId && effect.ready && effect.source != null && !retained)
+            if (mine && effect.ready && effect.source != null && !retained)
             {
                 retained = true;
                 continue;
@@ -68,32 +72,51 @@ public sealed class UberverseWeaponEffect : MonoBehaviour
             effect.gameObject.SetActive(false);
             Destroy(effect.gameObject);
         }
-        if (itemId != ItemId || retained) return;
+        if (!mine || retained) return;
 
-        // AWP is the measured static body mesh, including its scope. Never use Handle,
-        // an animation mesh, or a muzzle renderer as the attachment frame.
+        // 2067 AWP anchors to the measured static body mesh named "AWP" (its scope included; never Handle,
+        // an animation mesh, or a muzzle renderer). 2076 Death Hammer has no "AWP" mesh, so pick the
+        // largest body mesh (skipping obvious non-body renderers); Initialize scales the system to it.
+        string wantName = (itemId == ItemId) ? "AWP" : null;
+        MeshFilter chosen = null;
+        float bestVolume = -1f;
         foreach (MeshFilter filter in weaponRoot.GetComponentsInChildren<MeshFilter>(true))
         {
-            if (filter.sharedMesh == null || filter.sharedMesh.name != "AWP") continue;
-            Renderer body = filter.GetComponent<Renderer>();
-            if (body == null || Owns(body)) continue;
-            GameObject root = new GameObject(RootName);
-            root.transform.parent = body.transform;
-            root.transform.localPosition = Vector3.zero;
-            root.transform.localRotation = Quaternion.identity;
-            root.transform.localScale = Vector3.one;
-            root.layer = body.gameObject.layer;
-            UberverseWeaponEffect effect = root.AddComponent<UberverseWeaponEffect>();
-            try { effect.Initialize(body, filter.sharedMesh.bounds); }
-            catch (Exception error)
+            if (filter.sharedMesh == null) continue;
+            Renderer r = filter.GetComponent<Renderer>();
+            if (r == null || Owns(r)) continue;
+            if (wantName != null)
             {
-                root.SetActive(false);
-                Destroy(root);
-                Debug.LogError("Uberverse effects: " + error.Message);
+                if (filter.sharedMesh.name == wantName) { chosen = filter; break; }
+                continue;
             }
+            string name = filter.sharedMesh.name.ToLowerInvariant();
+            if (name.Contains("handle") || name.Contains("muzzle") || name.Contains("scope")
+                || name.Contains("flash") || name.Contains("light")) continue;
+            Vector3 size = filter.sharedMesh.bounds.size;
+            float volume = size.x * size.y * size.z;
+            if (volume > bestVolume) { bestVolume = volume; chosen = filter; }
+        }
+        if (chosen == null)
+        {
+            Debug.LogWarning("Uberverse effects: body mesh not found for item " + itemId + "; no effects attached.");
             return;
         }
-        Debug.LogWarning("Uberverse effects: AWP body mesh not found; no effects attached.");
+        Renderer body = chosen.GetComponent<Renderer>();
+        GameObject root = new GameObject(RootName);
+        root.transform.parent = body.transform;
+        root.transform.localPosition = Vector3.zero;
+        root.transform.localRotation = Quaternion.identity;
+        root.transform.localScale = Vector3.one;
+        root.layer = body.gameObject.layer;
+        UberverseWeaponEffect newEffect = root.AddComponent<UberverseWeaponEffect>();
+        try { newEffect.Initialize(body, chosen.sharedMesh.bounds); }
+        catch (Exception error)
+        {
+            root.SetActive(false);
+            Destroy(root);
+            Debug.LogError("Uberverse effects: " + error.Message);
+        }
     }
 
     private T Keep<T>(T resource) where T : UnityEngine.Object
