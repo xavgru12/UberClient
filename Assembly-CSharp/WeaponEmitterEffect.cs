@@ -256,7 +256,7 @@ public abstract class WeaponEmitterEffect : MonoBehaviour
     }
 }
 
-/// <summary>AWP [Cyber Neon] (9080): a rotating dual-colour holo-ring of sharp cyan/magenta nodes
+/// <summary>AWP [Cyber Neon] (2068): a rotating dual-colour holo-ring of sharp cyan/magenta nodes
 /// around the scope, swept by a scanning highlight. Reads as a digital targeting halo.</summary>
 public sealed class CyberNeonWeaponEffect : WeaponEmitterEffect
 {
@@ -296,7 +296,7 @@ public sealed class CyberNeonWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>AWP [Toxic Venom] (9081): slow acid-green gas wisps rising and swelling, threaded with
+/// <summary>AWP [Toxic Venom] (2069): slow acid-green gas wisps rising and swelling, threaded with
 /// smaller bright bubble motes. Reads as bubbling biohazard ooze venting off the body.</summary>
 public sealed class ToxicVenomWeaponEffect : WeaponEmitterEffect
 {
@@ -359,7 +359,7 @@ public sealed class ToxicVenomWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>AWP [Molten Inferno] (9082): embers rising off the body, flickering and cooling from
+/// <summary>AWP [Molten Inferno] (2070): embers rising off the body, flickering and cooling from
 /// white-hot through orange to deep red as they climb, with a few brighter drifting flakes.</summary>
 public sealed class MoltenInfernoWeaponEffect : WeaponEmitterEffect
 {
@@ -415,7 +415,7 @@ public sealed class MoltenInfernoWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>Wrecker [Voidglass] (9085): the amethyst crystal core lit from within, a slow energy
+/// <summary>Wrecker [Voidglass] (2073): the amethyst crystal core lit from within, a slow energy
 /// pulse plus refracted light-shards orbiting the glass on tilted planes. Attaches to polySurface24
 /// (the Wrecker's glass-bearing body), not the AWP.</summary>
 public sealed class VoidglassWeaponEffect : WeaponEmitterEffect
@@ -472,7 +472,7 @@ public sealed class VoidglassWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>Splattergun [Prism Splatter] (9086): glowing paint droplets flicking off the muzzle in
+/// <summary>Splattergun [Prism Splatter] (2074): glowing paint droplets flicking off the muzzle in
 /// cyan / magenta / lime, thrown forward on a downward gravity arc. Attaches to SplatterBody.</summary>
 public sealed class PrismSplatterWeaponEffect : WeaponEmitterEffect
 {
@@ -514,7 +514,7 @@ public sealed class PrismSplatterWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>Grenade Launcher [Dragon's Maw] (9087): a faint ember breath drifting out of the muzzle
+/// <summary>Grenade Launcher [Dragon's Maw] (2075): a faint ember breath drifting out of the muzzle
 /// mouth, hot embers cooling white->orange->red among soft warm haze puffs. Attaches to "Launcher".</summary>
 public sealed class DragonsMawWeaponEffect : WeaponEmitterEffect
 {
