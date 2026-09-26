@@ -260,7 +260,7 @@ public abstract class WeaponEmitterEffect : MonoBehaviour
 /// around the scope, swept by a scanning highlight. Reads as a digital targeting halo.</summary>
 public sealed class CyberNeonWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9080;
+    public const int ItemId = 2068;
     private static readonly Color Cyan = new Color(.15f, .90f, 1f);
     private static readonly Color Magenta = new Color(1f, .18f, .80f);
     protected override int SpriteCount { get { return 30; } }
@@ -300,7 +300,7 @@ public sealed class CyberNeonWeaponEffect : WeaponEmitterEffect
 /// smaller bright bubble motes. Reads as bubbling biohazard ooze venting off the body.</summary>
 public sealed class ToxicVenomWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9081;
+    public const int ItemId = 2069;
     private const int GasCount = 18;
     private static readonly Color Bright = new Color(.70f, 1f, .30f);
     private static readonly Color Deep = new Color(.12f, .45f, .05f);
@@ -363,7 +363,7 @@ public sealed class ToxicVenomWeaponEffect : WeaponEmitterEffect
 /// white-hot through orange to deep red as they climb, with a few brighter drifting flakes.</summary>
 public sealed class MoltenInfernoWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9082;
+    public const int ItemId = 2070;
     private const int EmberCount = 28;
     private static readonly Color WhiteHot = new Color(1f, .95f, .80f);
     private static readonly Color Orange = new Color(1f, .48f, .08f);
@@ -420,7 +420,7 @@ public sealed class MoltenInfernoWeaponEffect : WeaponEmitterEffect
 /// (the Wrecker's glass-bearing body), not the AWP.</summary>
 public sealed class VoidglassWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9085;
+    public const int ItemId = 2073;
     private const int CoreMotes = 6;
     private static readonly Color Violet = new Color(.51f, .18f, 1f);
     private static readonly Color Magenta = new Color(1f, .12f, .70f);
@@ -476,7 +476,7 @@ public sealed class VoidglassWeaponEffect : WeaponEmitterEffect
 /// cyan / magenta / lime, thrown forward on a downward gravity arc. Attaches to SplatterBody.</summary>
 public sealed class PrismSplatterWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9086;
+    public const int ItemId = 2074;
     private static readonly Color Cyan = new Color(.15f, .90f, 1f);
     private static readonly Color Magenta = new Color(1f, .15f, .80f);
     private static readonly Color Lime = new Color(.60f, 1f, .10f);
@@ -518,7 +518,7 @@ public sealed class PrismSplatterWeaponEffect : WeaponEmitterEffect
 /// mouth, hot embers cooling white->orange->red among soft warm haze puffs. Attaches to "Launcher".</summary>
 public sealed class DragonsMawWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9087;
+    public const int ItemId = 2075;
     private const int HazeCount = 8;
     private static readonly Color WhiteHot = new Color(1f, .92f, .70f);
     private static readonly Color Orange = new Color(1f, .45f, .07f);

@@ -8,7 +8,7 @@ using UnityEngine;
 public sealed class UberverseWeaponEffect : MonoBehaviour
 {
     // Next unused ID after PR #8's retired 9068-9078 range. Catalog must use this same ID.
-    public const int ItemId = 9079;
+    public const int ItemId = 2067;
     public const string RootName = "Uberverse_OrbitalSystem";
     private const int PlanetCount = 3;
     private const int RibbonSegments = 64;
