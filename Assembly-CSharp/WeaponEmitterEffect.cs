@@ -256,11 +256,11 @@ public abstract class WeaponEmitterEffect : MonoBehaviour
     }
 }
 
-/// <summary>AWP [Cyber Neon] (9080): a rotating dual-colour holo-ring of sharp cyan/magenta nodes
+/// <summary>AWP [Cyber Neon] (2068): a rotating dual-colour holo-ring of sharp cyan/magenta nodes
 /// around the scope, swept by a scanning highlight. Reads as a digital targeting halo.</summary>
 public sealed class CyberNeonWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9080;
+    public const int ItemId = 2068;
     private static readonly Color Cyan = new Color(.15f, .90f, 1f);
     private static readonly Color Magenta = new Color(1f, .18f, .80f);
     protected override int SpriteCount { get { return 30; } }
@@ -296,11 +296,11 @@ public sealed class CyberNeonWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>AWP [Toxic Venom] (9081): slow acid-green gas wisps rising and swelling, threaded with
+/// <summary>AWP [Toxic Venom] (2069): slow acid-green gas wisps rising and swelling, threaded with
 /// smaller bright bubble motes. Reads as bubbling biohazard ooze venting off the body.</summary>
 public sealed class ToxicVenomWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9081;
+    public const int ItemId = 2069;
     private const int GasCount = 18;
     private static readonly Color Bright = new Color(.70f, 1f, .30f);
     private static readonly Color Deep = new Color(.12f, .45f, .05f);
@@ -359,11 +359,11 @@ public sealed class ToxicVenomWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>AWP [Molten Inferno] (9082): embers rising off the body, flickering and cooling from
+/// <summary>AWP [Molten Inferno] (2070): embers rising off the body, flickering and cooling from
 /// white-hot through orange to deep red as they climb, with a few brighter drifting flakes.</summary>
 public sealed class MoltenInfernoWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9082;
+    public const int ItemId = 2070;
     private const int EmberCount = 28;
     private static readonly Color WhiteHot = new Color(1f, .95f, .80f);
     private static readonly Color Orange = new Color(1f, .48f, .08f);
@@ -415,12 +415,12 @@ public sealed class MoltenInfernoWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>Wrecker [Voidglass] (9085): the amethyst crystal core lit from within, a slow energy
+/// <summary>Wrecker [Voidglass] (2073): the amethyst crystal core lit from within, a slow energy
 /// pulse plus refracted light-shards orbiting the glass on tilted planes. Attaches to polySurface24
 /// (the Wrecker's glass-bearing body), not the AWP.</summary>
 public sealed class VoidglassWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9085;
+    public const int ItemId = 2073;
     private const int CoreMotes = 6;
     private static readonly Color Violet = new Color(.51f, .18f, 1f);
     private static readonly Color Magenta = new Color(1f, .12f, .70f);
@@ -472,11 +472,11 @@ public sealed class VoidglassWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>Splattergun [Prism Splatter] (9086): glowing paint droplets flicking off the muzzle in
+/// <summary>Splattergun [Prism Splatter] (2074): glowing paint droplets flicking off the muzzle in
 /// cyan / magenta / lime, thrown forward on a downward gravity arc. Attaches to SplatterBody.</summary>
 public sealed class PrismSplatterWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9086;
+    public const int ItemId = 2074;
     private static readonly Color Cyan = new Color(.15f, .90f, 1f);
     private static readonly Color Magenta = new Color(1f, .15f, .80f);
     private static readonly Color Lime = new Color(.60f, 1f, .10f);
@@ -514,11 +514,11 @@ public sealed class PrismSplatterWeaponEffect : WeaponEmitterEffect
     }
 }
 
-/// <summary>Grenade Launcher [Dragon's Maw] (9087): a faint ember breath drifting out of the muzzle
+/// <summary>Grenade Launcher [Dragon's Maw] (2075): a faint ember breath drifting out of the muzzle
 /// mouth, hot embers cooling white->orange->red among soft warm haze puffs. Attaches to "Launcher".</summary>
 public sealed class DragonsMawWeaponEffect : WeaponEmitterEffect
 {
-    public const int ItemId = 9087;
+    public const int ItemId = 2075;
     private const int HazeCount = 8;
     private static readonly Color WhiteHot = new Color(1f, .92f, .70f);
     private static readonly Color Orange = new Color(1f, .45f, .07f);
