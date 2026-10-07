@@ -66,5 +66,11 @@ namespace UberStrike.Core.ViewModel
 			get;
 			set;
 		}
+
+		public MaliciousIp MaliciousIp
+		{
+			get;
+			set;
+		}
 	}
 }
