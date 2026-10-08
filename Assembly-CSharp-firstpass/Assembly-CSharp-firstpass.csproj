@@ -697,7 +697,7 @@
     <Compile Include="UberStrike.DataCenter.Common.Entities\LinkedMemberView.cs" />
     <Compile Include="UberStrike.DataCenter.Common.Entities\LiveFeedView.cs" />
     <Compile Include="UberStrike.DataCenter.Common.Entities\LoadoutView.cs" />
-    <Compile Include="UberStrike.DataCenter.Common.Entities\MaliciousIp.cs" />
+    <Compile Include="UberStrike.DataCenter.Common.Entities\IpReputationView.cs" />
     <Compile Include="UberStrike.DataCenter.Common.Entities\MapClusterView.cs" />
     <Compile Include="UberStrike.DataCenter.Common.Entities\MapInfoView.cs" />
     <Compile Include="UberStrike.DataCenter.Common.Entities\MapUsageView.cs" />
