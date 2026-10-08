@@ -109,9 +109,9 @@ public class GlobalSceneLoader : MonoBehaviour
 		}
 		Debug.Log("Start LoginByChannel");
 		bool maliciousIp = false;
-		yield return ApplicationWebServiceClient.CheckIpReputation(delegate(MaliciousIp view)
+		yield return ApplicationWebServiceClient.CheckIpReputation(delegate(IpReputationView view)
 		{
-			if (view != null && !string.IsNullOrEmpty(view.IpAddress))
+			if (view != null && view.IsMalicious)
 			{
 				maliciousIp = true;
 				string message = string.IsNullOrEmpty(view.Reason)

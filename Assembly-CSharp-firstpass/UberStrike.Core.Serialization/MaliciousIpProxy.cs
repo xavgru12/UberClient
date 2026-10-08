@@ -6,23 +6,25 @@ namespace UberStrike.Core.Serialization
 {
 	public static class MaliciousIpProxy
 	{
-		public static void Serialize(Stream stream, MaliciousIp instance)
+		public static void Serialize(Stream stream, IpReputationView instance)
 		{
 			using (MemoryStream memoryStream = new MemoryStream())
 			{
+				BooleanProxy.Serialize(memoryStream, instance.IsMalicious);
 				StringProxy.Serialize(memoryStream, instance.IpAddress);
 				StringProxy.Serialize(memoryStream, instance.Reason);
 				memoryStream.WriteTo(stream);
 			}
 		}
 
-		public static MaliciousIp Deserialize(Stream bytes)
+		public static IpReputationView Deserialize(Stream bytes)
 		{
-			MaliciousIp maliciousIp = new MaliciousIp();
+			IpReputationView ipReputationView = new IpReputationView();
 
-			maliciousIp.IpAddress = StringProxy.Deserialize(bytes);
-			maliciousIp.Reason = StringProxy.Deserialize(bytes);
-			return maliciousIp;
+			ipReputationView.IsMalicious = BooleanProxy.Deserialize(bytes);
+			ipReputationView.IpAddress = StringProxy.Deserialize(bytes);
+			ipReputationView.Reason = StringProxy.Deserialize(bytes);
+			return ipReputationView;
 		}
 	}
 }

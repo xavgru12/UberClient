@@ -3,8 +3,14 @@ using System;
 namespace Cmune.DataCenter.Common.Entities
 {
 	[Serializable]
-	public class MaliciousIp
+	public class IpReputationView
 	{
+		public bool IsMalicious
+		{
+			get;
+			set;
+		}
+
 		public string IpAddress
 		{
 			get;
@@ -17,7 +23,7 @@ namespace Cmune.DataCenter.Common.Entities
 			set;
 		}
 
-		public MaliciousIp()
+		public IpReputationView()
 		{
 			IpAddress = string.Empty;
 			Reason = string.Empty;

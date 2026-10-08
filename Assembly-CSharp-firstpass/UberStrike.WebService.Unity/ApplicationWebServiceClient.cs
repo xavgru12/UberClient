@@ -29,7 +29,7 @@ namespace UberStrike.WebService.Unity
 			}
 		}
 
-		public static Coroutine CheckIpReputation(Action<MaliciousIp> callback, Action<Exception> handler)
+		public static Coroutine CheckIpReputation(Action<IpReputationView> callback, Action<Exception> handler)
 		{
 			return MonoInstance.Mono.StartCoroutine(SoapClient.MakeRequest("IApplicationWebServiceContract", "ApplicationWebService", "CheckIpReputation", new byte[0], delegate(byte[] data)
 			{
