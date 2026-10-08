@@ -8,10 +8,8 @@ namespace UberStrike.Core.Serialization
 	{
 		public static void Serialize(Stream stream, MaliciousIp instance)
 		{
-			int num = 0;
 			using (MemoryStream memoryStream = new MemoryStream())
 			{
-
 				StringProxy.Serialize(memoryStream, instance.IpAddress);
 				StringProxy.Serialize(memoryStream, instance.Reason);
 				memoryStream.WriteTo(stream);
@@ -20,7 +18,6 @@ namespace UberStrike.Core.Serialization
 
 		public static MaliciousIp Deserialize(Stream bytes)
 		{
-			int num = Int32Proxy.Deserialize(bytes);
 			MaliciousIp maliciousIp = new MaliciousIp();
 
 			maliciousIp.IpAddress = StringProxy.Deserialize(bytes);

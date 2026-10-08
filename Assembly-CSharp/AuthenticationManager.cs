@@ -166,6 +166,17 @@ public class AuthenticationManager : Singleton<AuthenticationManager>
 			}
 			yield break;
 		}
+		if (authView.MemberAuthenticationResult == MemberAuthenticationResult.IsIpMalicious)
+		{
+			string reason = authView.MaliciousIp != null && !string.IsNullOrEmpty(authView.MaliciousIp.Reason)
+				? authView.MaliciousIp.Reason
+				: string.Empty;
+			string message = string.IsNullOrEmpty(reason)
+				? "Your IP address has been flagged as malicious!"
+				: "Your IP address has been flagged as malicious: " + reason;
+			ApplicationDataManager.LockApplication(message);
+			yield break;
+		}
 		if (authView.MemberAuthenticationResult == MemberAuthenticationResult.NewUpdate)
 		{
 			ApplicationDataManager.LockApplication(string.Format(LocalizedStrings.UberStrikeIsOutOfDateVisitWebsite, ApplicationDataManager.Version, authView.ServerGameVersion));
