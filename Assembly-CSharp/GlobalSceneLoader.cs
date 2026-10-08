@@ -111,10 +111,13 @@ public class GlobalSceneLoader : MonoBehaviour
 		bool maliciousIp = false;
 		yield return ApplicationWebServiceClient.CheckIpReputation(delegate(MaliciousIp view)
 		{
-			if (view != null && !string.IsNullOrEmpty(view.Reason))
+			if (view != null && !string.IsNullOrEmpty(view.IpAddress))
 			{
 				maliciousIp = true;
-				ApplicationDataManager.LockApplication("Your IP address has been flagged as malicious: " + view.Reason);
+				string message = string.IsNullOrEmpty(view.Reason)
+					? "Your IP " + view.IpAddress + " has been blocked."
+					: "Your IP " + view.IpAddress + " has been blocked.\nReason: " + view.Reason;
+				ApplicationDataManager.LockApplication(message);
 			}
 		}, delegate(Exception ex)
 		{
