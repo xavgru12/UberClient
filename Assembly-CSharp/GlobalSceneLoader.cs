@@ -108,6 +108,22 @@ public class GlobalSceneLoader : MonoBehaviour
 			yield break;
 		}
 		Debug.Log("Start LoginByChannel");
+		bool maliciousIp = false;
+		yield return ApplicationWebServiceClient.CheckIpReputation(delegate(MaliciousIp view)
+		{
+			if (view != null && !string.IsNullOrEmpty(view.Reason))
+			{
+				maliciousIp = true;
+				ApplicationDataManager.LockApplication("Your IP address has been flagged as malicious: " + view.Reason);
+			}
+		}, delegate(Exception ex)
+		{
+			Debug.LogWarning("IP reputation check failed: " + ex);
+		});
+		if (maliciousIp)
+		{
+			yield break;
+		}
 		Singleton<AuthenticationManager>.Instance.LoginByChannel();
 		yield return new WaitForSeconds(1f);
 		UnityEngine.Object.Destroy(base.gameObject);
