@@ -29,6 +29,17 @@ namespace UberStrike.WebService.Unity
 			}
 		}
 
+		public static Coroutine CheckIpReputation(Action<IpReputationView> callback, Action<Exception> handler)
+		{
+			return MonoInstance.Mono.StartCoroutine(SoapClient.MakeRequest("IApplicationWebServiceContract", "ApplicationWebService", "CheckIpReputation", new byte[0], delegate(byte[] data)
+			{
+				if (callback != null)
+				{
+					callback(IpReputationProxy.Deserialize(new MemoryStream(data)));
+				}
+			}, handler));
+		}
+
 		public static Coroutine GetMaps(string clientVersion, DefinitionType clientType, Action<List<MapView>> callback, Action<Exception> handler)
 		{
 			using (MemoryStream memoryStream = new MemoryStream())
