@@ -47,9 +47,8 @@ namespace UberStrike.Core.Serialization
 				}
 				DateTimeProxy.Serialize(memoryStream, instance.ServerTime);
 				StringProxy.Serialize(memoryStream, instance.ServerGameVersion);
-				Int32Proxy.Serialize(memoryStream, instance.BanDuration);
-				Int32Proxy.Serialize(memoryStream, instance.MuteDuration);
 				Int32Proxy.Serialize(stream, ~num);
+				Int32Proxy.Serialize(stream, instance.MuteDuration);
 				memoryStream.WriteTo(stream);
 			}
 		}
@@ -78,9 +77,9 @@ namespace UberStrike.Core.Serialization
 			}
 			memberAuthenticationResultView.ServerTime = DateTimeProxy.Deserialize(bytes);
 			memberAuthenticationResultView.ServerGameVersion = StringProxy.Deserialize(bytes);
-				memberAuthenticationResultView.BanDuration = Int32Proxy.Deserialize(bytes);
-				memberAuthenticationResultView.MuteDuration = Int32Proxy.Deserialize(bytes);
-				return memberAuthenticationResultView;
-			}
+			memberAuthenticationResultView.BanDuration = Int32Proxy.Deserialize(bytes);
+			memberAuthenticationResultView.MuteDuration = Int32Proxy.Deserialize(bytes);
+			return memberAuthenticationResultView;
 		}
 	}
+}
