@@ -108,12 +108,12 @@ public class GlobalSceneLoader : MonoBehaviour
 			yield break;
 		}
 		Debug.Log("Start LoginByChannel");
-		bool maliciousIp = false;
+		bool isMaliciousIp = false;
 		yield return ApplicationWebServiceClient.CheckIpReputation(delegate(IpReputationView view)
 		{
 			if (view != null && view.IsMalicious)
 			{
-				maliciousIp = true;
+				isMaliciousIp = true;
 				string message = string.IsNullOrEmpty(view.Reason)
 					? "Your IP " + view.IpAddress + " has been blocked."
 					: "Your IP " + view.IpAddress + " has been blocked.\nReason: " + view.Reason;
@@ -127,7 +127,7 @@ public class GlobalSceneLoader : MonoBehaviour
 		{
 			Debug.LogWarning("IP reputation check failed: " + ex);
 		});
-		if (maliciousIp)
+		if (isMaliciousIp)
 		{
 			yield break;
 		}
