@@ -31,6 +31,7 @@ namespace Cmune.DataCenter.Common.Entities
 
 		public IpReputationView()
 		{
+			IsMalicious = false;
 			IpAddress = string.Empty;
 			Reason = string.Empty;
 			IsDisplayHelpText = true;

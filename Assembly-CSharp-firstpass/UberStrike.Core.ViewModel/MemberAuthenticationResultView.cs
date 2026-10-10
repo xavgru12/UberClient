@@ -66,11 +66,5 @@ namespace UberStrike.Core.ViewModel
 			get;
 			set;
 		}
-
-		public IpReputationView IpReputation
-		{
-			get;
-			set;
-		}
 	}
 }
