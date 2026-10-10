@@ -114,9 +114,11 @@ public class GlobalSceneLoader : MonoBehaviour
 			if (view != null && view.IsMalicious)
 			{
 				isMaliciousIp = true;
-				string message = string.IsNullOrEmpty(view.Reason)
-					? "Your IP " + view.IpAddress + " has been blocked."
-					: "Your IP " + view.IpAddress + " has been blocked.\nReason: " + view.Reason;
+				string message = "Your IP " + view.IpAddress + " has been blocked.";
+				if (!string.IsNullOrEmpty(view.Reason))
+				{
+					message += "\nReason: " + view.Reason;
+				}
 				if (view.IsDisplayHelpText)
 				{
 					message += "\nCheck your network and change your public IP.";
