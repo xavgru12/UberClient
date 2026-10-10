@@ -117,6 +117,10 @@ public class GlobalSceneLoader : MonoBehaviour
 				string message = string.IsNullOrEmpty(view.Reason)
 					? "Your IP " + view.IpAddress + " has been blocked."
 					: "Your IP " + view.IpAddress + " has been blocked.\nReason: " + view.Reason;
+				if (view.IsDisplayHelpText)
+				{
+					message += "\nCheck your network and change your public IP.";
+				}
 				ApplicationDataManager.LockApplication(message);
 			}
 		}, delegate(Exception ex)

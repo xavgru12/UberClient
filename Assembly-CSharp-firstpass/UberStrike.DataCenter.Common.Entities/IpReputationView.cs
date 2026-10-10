@@ -23,10 +23,17 @@ namespace Cmune.DataCenter.Common.Entities
 			set;
 		}
 
+		public bool IsDisplayHelpText
+		{
+			get;
+			set;
+		}
+
 		public IpReputationView()
 		{
 			IpAddress = string.Empty;
 			Reason = string.Empty;
+			IsDisplayHelpText = true;
 		}
 	}
 }

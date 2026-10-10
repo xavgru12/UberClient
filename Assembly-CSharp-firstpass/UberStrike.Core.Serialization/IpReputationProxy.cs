@@ -13,6 +13,7 @@ namespace UberStrike.Core.Serialization
 				BooleanProxy.Serialize(memoryStream, instance.IsMalicious);
 				StringProxy.Serialize(memoryStream, instance.IpAddress);
 				StringProxy.Serialize(memoryStream, instance.Reason);
+				BooleanProxy.Serialize(memoryStream, instance.IsDisplayHelpText);
 				memoryStream.WriteTo(stream);
 			}
 		}
@@ -24,6 +25,7 @@ namespace UberStrike.Core.Serialization
 			ipReputationView.IsMalicious = BooleanProxy.Deserialize(bytes);
 			ipReputationView.IpAddress = StringProxy.Deserialize(bytes);
 			ipReputationView.Reason = StringProxy.Deserialize(bytes);
+			ipReputationView.IsDisplayHelpText = BooleanProxy.Deserialize(bytes);
 			return ipReputationView;
 		}
 	}
