@@ -4,7 +4,7 @@ using UberStrike.Core.ViewModel;
 
 namespace UberStrike.Core.Serialization
 {
-	public static class MaliciousIpProxy
+	public static class IpReputationProxy
 	{
 		public static void Serialize(Stream stream, IpReputationView instance)
 		{

@@ -49,10 +49,10 @@ namespace UberStrike.Core.Serialization
 				StringProxy.Serialize(memoryStream, instance.ServerGameVersion);
 				Int32Proxy.Serialize(stream, ~num);
 				Int32Proxy.Serialize(stream, instance.MuteDuration);
-				if (instance.MaliciousIp != null)
-				{
-					MaliciousIpProxy.Serialize(memoryStream, instance.MaliciousIp);
-				}
+			if (instance.IpReputation != null)
+			{
+				IpReputationProxy.Serialize(memoryStream, instance.IpReputation);
+			}
 				else
 				{
 					num |= 16;
@@ -89,7 +89,7 @@ namespace UberStrike.Core.Serialization
 			memberAuthenticationResultView.MuteDuration = Int32Proxy.Deserialize(bytes);
 			if ((num & 16) != 0)
 			{
-				memberAuthenticationResultView.MaliciousIp = MaliciousIpProxy.Deserialize(bytes);
+				memberAuthenticationResultView.IpReputation = IpReputationProxy.Deserialize(bytes);
 			}
 			return memberAuthenticationResultView;
 		}

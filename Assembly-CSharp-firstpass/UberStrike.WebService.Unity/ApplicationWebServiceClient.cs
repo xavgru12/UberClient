@@ -35,7 +35,7 @@ namespace UberStrike.WebService.Unity
 			{
 				if (callback != null)
 				{
-					callback(MaliciousIpProxy.Deserialize(new MemoryStream(data)));
+					callback(IpReputationProxy.Deserialize(new MemoryStream(data)));
 				}
 			}, handler));
 		}

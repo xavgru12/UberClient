@@ -599,7 +599,7 @@
     <Compile Include="UberStrike.Core.Serialization\LoadoutViewProxy.cs" />
     <Compile Include="UberStrike.Core.Serialization\LuckyDrawSetUnityViewProxy.cs" />
     <Compile Include="UberStrike.Core.Serialization\LuckyDrawUnityViewProxy.cs" />
-    <Compile Include="UberStrike.Core.Serialization\MaliciousIpProxy.cs" />
+    <Compile Include="UberStrike.Core.Serialization\IpReputationProxy.cs" />
     <Compile Include="UberStrike.Core.Serialization\MapSettingsProxy.cs" />
     <Compile Include="UberStrike.Core.Serialization\MapViewProxy.cs" />
     <Compile Include="UberStrike.Core.Serialization\MatchPointsViewProxy.cs" />

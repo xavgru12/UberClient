@@ -67,7 +67,7 @@ namespace UberStrike.Core.ViewModel
 			set;
 		}
 
-		public IpReputationView MaliciousIp
+		public IpReputationView IpReputation
 		{
 			get;
 			set;
