@@ -117,7 +117,6 @@ public class AuthenticationManager : Singleton<AuthenticationManager>
 			}));
 			if (isMaliciousIp)
 			{
-				PopupSystem.HideMessage(_progress);
 				yield break;
 			}
 			_progress.Text = "Checking Client";
