@@ -43,6 +43,32 @@ public class AuthenticationManager : Singleton<AuthenticationManager>
 		UnityRuntime.StartRoutine(StartLoginMemberSteam(directSteamLogin: true));
 	}
 
+	private IEnumerator CheckIpReputation(Action<bool> onComplete)
+	{
+		bool isMaliciousIp = false;
+		yield return ApplicationWebServiceClient.CheckIpReputation(delegate(IpReputationView view)
+		{
+			if (view != null && view.IsMalicious)
+			{
+				isMaliciousIp = true;
+				string message = "Your IP " + view.IpAddress + " has been blocked.";
+				if (!string.IsNullOrEmpty(view.Reason))
+				{
+					message += "\nReason: " + view.Reason;
+				}
+				if (view.IsDisplayHelpText)
+				{
+					message += "\nCheck your network and change your public IP.";
+				}
+				ApplicationDataManager.LockApplication(message);
+			}
+		}, delegate(Exception ex)
+		{
+			Debug.LogWarning("IP reputation check failed: " + ex);
+		});
+		onComplete(isMaliciousIp);
+	}
+
 	public IEnumerator StartLoginMemberEmail(string emailAddress, string password)
 	{
 		if (string.IsNullOrEmpty(emailAddress) || string.IsNullOrEmpty(password))
@@ -80,6 +106,17 @@ public class AuthenticationManager : Singleton<AuthenticationManager>
 			if (!WindowsUpdater.IsUpdateRoutineComplete)
 			{
 				PopupSystem.HideMessage(_progress);
+				yield break;
+			}
+			_progress.Text = "Checking IP";
+			_progress.Progress = 0f;
+			bool isMaliciousIp = false;
+			yield return UnityRuntime.StartRoutine(CheckIpReputation(delegate(bool result)
+			{
+				isMaliciousIp = result;
+			}));
+			if (isMaliciousIp)
+			{
 				yield break;
 			}
 			_progress.Text = "Checking Client";
